@@ -1,0 +1,9 @@
+{
+  "indexes": [
+    { "collectionGroup": "services", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "active", "order": "ASCENDING" }, { "fieldPath": "sortOrder", "order": "ASCENDING" }] },
+    { "collectionGroup": "bookings", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "dateKey", "order": "ASCENDING" }, { "fieldPath": "startTime", "order": "ASCENDING" }] },
+    { "collectionGroup": "bookings", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "dateKey", "order": "DESCENDING" }] },
+    { "collectionGroup": "bookings", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "createdByUid", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "startAt", "order": "ASCENDING" }] }
+  ],
+  "fieldOverrides": []
+}

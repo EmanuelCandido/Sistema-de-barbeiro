@@ -1,0 +1,843 @@
+:root {
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  color: #1f2925;
+  background: #f5f1e8;
+  --ink: #1f2925;
+  --muted: #626b65;
+  --line: #d9d6cc;
+  --paper: #fffefa;
+  --accent: #974a29;
+  --green: #276748;
+  --red: #963d35;
+}
+
+body {
+  color: var(--ink);
+  background: #f5f1e8;
+}
+
+.settings-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle,
+.settings-back {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.theme-toggle {
+  display: grid;
+  width: 42px;
+  padding: 0;
+  place-items: center;
+  cursor: pointer;
+}
+
+.theme-toggle:hover,
+.settings-back:hover {
+  border-color: var(--accent);
+}
+
+.settings-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 13px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.logo span,
+.page-header h1,
+.panel__header h2,
+.next-card > div > strong,
+.metric > strong,
+.modal h2,
+.login__heading h1,
+.payment-choice h3 {
+  font-family: "Lora", Georgia, serif !important;
+}
+
+.metric.accent {
+  background: #8d4527;
+  border-color: #8d4527;
+}
+
+.metric.accent span,
+.metric.accent small {
+  color: #fff0e8;
+}
+
+.sidebar,
+.bottom-nav {
+  background: #1f2925;
+}
+
+.sidebar nav a svg,
+.bottom-nav svg {
+  flex: 0 0 auto;
+}
+
+.next-card > div > strong,
+.metric > strong,
+.appointment time,
+.appointment > b,
+.finance-row > b,
+input[type="number"],
+input[type="time"],
+input[type="month"] {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.025em;
+}
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  min-width: 0;
+}
+
+.content,
+.content > *,
+.dashboard-grid > *,
+.metric-grid > *,
+.appointment > *,
+.period > *,
+.panel__header > * {
+  min-width: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .56;
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  display: inline-block !important;
+  flex: 0 0 auto;
+  width: 46px !important;
+  min-width: 46px;
+  height: 26px;
+  min-height: 26px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background-color: #71736f !important;
+  background-image: radial-gradient(circle, #fff 0 9px, transparent 10px) !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 center !important;
+  background-size: 26px 26px !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08);
+  cursor: pointer;
+  transition: background-color .18s ease, background-position .18s ease;
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--accent) !important;
+  background-position: 20px center !important;
+}
+
+.period > button {
+  display: grid;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--red);
+}
+
+.period > button:hover {
+  background: transparent;
+  color: #c84f45;
+}
+
+.period > span {
+  display: grid;
+  align-self: flex-end;
+  height: 40px;
+  place-items: center;
+  line-height: 1;
+}
+
+@media (max-width: 760px) {
+  .content {
+    width: 100%;
+    padding: 20px 12px calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .page-header {
+    gap: 12px;
+    margin-bottom: 19px;
+  }
+
+  .page-header h1 {
+    font-size: 29px;
+    line-height: 1.08;
+  }
+
+  .page-header span {
+    display: block;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .page-header input,
+  .page-header > button {
+    flex: 0 0 auto;
+  }
+
+  .dashboard-grid,
+  .metric-grid {
+    gap: 10px;
+  }
+
+  .next-card,
+  .metric,
+  .panel,
+  .loading-card {
+    padding: 15px;
+    border-radius: 14px;
+  }
+
+  .metric {
+    min-height: 0;
+    justify-content: flex-start;
+  }
+
+  .metric > strong {
+    margin: 5px 0 4px;
+    font-size: 24px;
+  }
+
+  .metric > small {
+    line-height: 1.35;
+  }
+
+  .next-card > div > strong {
+    font-size: 27px;
+  }
+
+  .panel {
+    margin-top: 12px;
+  }
+
+  .panel__header {
+    gap: 12px;
+    margin-bottom: 11px;
+  }
+
+  .panel__header h2 {
+    font-size: 21px;
+    line-height: 1.15;
+  }
+
+  .appointment {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 8px;
+    min-height: 61px;
+  }
+
+  .appointment--button {
+    padding: 7px 11px;
+  }
+
+  .appointment time {
+    font-size: 16px;
+  }
+
+  .appointment span strong,
+  .appointment span small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .appointment span small {
+    margin-top: 2px;
+  }
+
+  .appointment > .badge {
+    grid-column: auto;
+    justify-self: end;
+  }
+
+  .week-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .week-controls button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 5px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .week-list {
+    gap: 8px;
+  }
+
+  .week-list > section > header {
+    gap: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .week-list > section > header small {
+    text-align: right;
+  }
+
+  .bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding-top: 5px;
+    padding-bottom: calc(5px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav a {
+    min-width: 0;
+    min-height: 51px;
+    padding: 0 2px;
+    overflow: hidden;
+  }
+
+  .bottom-nav a span {
+    width: 100%;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+  }
+
+  .modal-backdrop {
+    padding: 8px;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: calc(100dvh - 16px);
+    padding: 20px 16px;
+    border-radius: 14px;
+  }
+
+  .modal h2 {
+    padding-right: 32px;
+    font-size: 26px;
+  }
+
+  .modal dl {
+    margin: 16px 0;
+  }
+
+  .modal dl div {
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 8px;
+    padding: 9px 0;
+  }
+
+  .modal dd {
+    overflow-wrap: anywhere;
+  }
+
+  .modal__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .modal__actions button {
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 6px 8px;
+  }
+
+  .service-admin article {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .service-admin article > div {
+    min-width: 0;
+  }
+
+  .service-admin strong,
+  .service-admin small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .schedule article {
+    padding: 13px;
+  }
+
+  .period {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 40px;
+    align-items: end;
+    gap: 6px;
+  }
+
+  .period > span {
+    display: grid;
+    align-self: end;
+    height: 40px;
+    place-items: center;
+    line-height: 1;
+  }
+
+  .period input {
+    width: 100%;
+    min-width: 0;
+    padding: 0 5px;
+  }
+
+  @media (max-width: 430px) {
+    .period {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 34px;
+      gap: 8px;
+    }
+
+    .period > span {
+      display: none;
+    }
+
+    .period > button {
+      width: 34px;
+      min-width: 34px;
+    }
+  }
+
+  .exception-list article {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .exception-list article > div {
+    min-width: 0;
+  }
+
+  .exception-list small {
+    overflow-wrap: anywhere;
+  }
+
+  .finance-breakdown > .finance-row {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 9px;
+    margin: 13px 0;
+  }
+
+  .finance-breakdown > .finance-row > b {
+    white-space: nowrap;
+  }
+
+  .finance-breakdown footer {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 19px;
+  }
+
+  .finance-breakdown footer button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .settings-form {
+    width: 100%;
+  }
+
+  .login {
+    padding: 12px;
+  }
+
+  .login > section {
+    padding: 27px 20px;
+    border-radius: 16px;
+  }
+
+  .login__heading {
+    margin: 27px 0 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-grid,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .next-card {
+    grid-column: auto;
+  }
+
+  .page-header {
+    display: block;
+  }
+
+  .page-header > button,
+  .page-header > input {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .page-header:has(> .settings-header-actions) {
+    position: relative;
+  }
+
+  .page-header:has(> .settings-header-actions) > div:first-child {
+    padding-right: 50px;
+  }
+
+  .page-header > .settings-header-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 13px;
+  }
+
+  .settings-header-actions .theme-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .panel__header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .panel__header > a {
+    margin-left: auto;
+  }
+
+  .service-admin article {
+    grid-template-columns: 10px minmax(0, 1fr) auto auto;
+    gap: 8px;
+  }
+
+  .service-admin article > div {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .service-admin article > i {
+    display: block !important;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    width: 8px;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .service-admin article > i.active {
+    background: #29b96b;
+    box-shadow: 0 0 0 3px rgba(41, 185, 107, .12);
+  }
+
+  .service-admin article > i.inactive {
+    background: #858b87;
+  }
+
+  .service-admin article > span,
+  .service-admin article > b {
+    display: none;
+  }
+
+  .service-admin article > button:not(.text-danger) {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .service-admin article > .text-danger {
+    display: inline-flex;
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  .service-admin article > button {
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 5px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #f2f4f1;
+  background: #0b0e0c;
+  --ink: #f2f4f1;
+  --muted: #a4aca6;
+  --line: #2b312d;
+  --paper: #151916;
+  --accent: #6c8cff;
+  --green: #54c286;
+  --red: #ef8178;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .content {
+  background: #0b0e0c;
+}
+
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .bottom-nav {
+  background: #090b0a;
+}
+
+:root[data-theme="dark"] .sidebar nav a:hover,
+:root[data-theme="dark"] .sidebar nav a.active {
+  background: #232824;
+}
+
+:root[data-theme="dark"] .next-card,
+:root[data-theme="dark"] .metric,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .loading-card,
+:root[data-theme="dark"] .week-list > section,
+:root[data-theme="dark"] .appointment--button,
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .payment-choice,
+:root[data-theme="dark"] .login > section,
+:root[data-theme="dark"] .initial-setup > section {
+  border-color: var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .metric.accent {
+  border-color: rgba(108, 140, 255, .3);
+  background: rgba(108, 140, 255, .15);
+}
+
+:root[data-theme="dark"] .metric.accent span,
+:root[data-theme="dark"] .metric.accent small {
+  color: #bdc9ff;
+}
+
+:root[data-theme="dark"] .week-list > section > header,
+:root[data-theme="dark"] .exception-form,
+:root[data-theme="dark"] .appointment--button:hover {
+  background: #1a1f1b;
+}
+
+:root[data-theme="dark"] .week-controls button,
+:root[data-theme="dark"] .secondary,
+:root[data-theme="dark"] .settings-back,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .next-card__actions button,
+:root[data-theme="dark"] .modal__actions button,
+:root[data-theme="dark"] .payment-options button {
+  border-color: var(--line);
+  background: #1b201c;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .next-card__actions button:hover,
+:root[data-theme="dark"] .payment-options button:hover {
+  border-color: #657069;
+  background: #222823;
+}
+
+:root[data-theme="dark"] .payment-options button.selected {
+  border-color: var(--accent);
+  background: rgba(108, 140, 255, .14);
+  box-shadow: 0 0 0 3px rgba(108, 140, 255, .12);
+}
+
+:root[data-theme="dark"] .page-header input,
+:root[data-theme="dark"] .form-modal input,
+:root[data-theme="dark"] .settings-form input,
+:root[data-theme="dark"] .period input,
+:root[data-theme="dark"] .exception-form input,
+:root[data-theme="dark"] .login input {
+  border-color: var(--line);
+  background: #101411;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] input:disabled {
+  color: #858d87;
+  opacity: 1;
+}
+
+:root[data-theme="dark"] .appointment,
+:root[data-theme="dark"] .service-admin article,
+:root[data-theme="dark"] .schedule article,
+:root[data-theme="dark"] .modal dl div,
+:root[data-theme="dark"] .exception-list article,
+:root[data-theme="dark"] .appointment--button {
+  border-color: #292f2b;
+}
+
+:root[data-theme="dark"] .finance-breakdown > .finance-row > div {
+  background: #303632;
+}
+
+:root[data-theme="dark"] .badge {
+  background: #2b302c;
+  color: #d7dbd7;
+}
+
+:root[data-theme="dark"] .badge--confirmed {
+  background: #163524;
+  color: #83d7a6;
+}
+
+:root[data-theme="dark"] .badge--completed {
+  background: #192b45;
+  color: #93b9ee;
+}
+
+:root[data-theme="dark"] .badge--cancelled {
+  background: #42201d;
+  color: #f29a93;
+}
+
+:root[data-theme="dark"] .info-note,
+:root[data-theme="dark"] .success-message {
+  background: #153021;
+  color: #8ed2aa;
+}
+
+:root[data-theme="dark"] .period button {
+  background: transparent;
+  color: var(--red);
+}
+
+:root[data-theme="dark"] .primary {
+  border: 1px solid #3dbd78;
+  background: #22945a;
+  color: #fff;
+  box-shadow: 0 7px 20px rgba(34, 148, 90, .18);
+}
+
+:root[data-theme="dark"] .primary:hover:not(:disabled) {
+  border-color: #5fd493;
+  background: #2aaa68;
+}
+
+:root[data-theme="dark"] .primary:active:not(:disabled) {
+  background: #197c49;
+  transform: translateY(1px);
+}
+
+:root[data-theme="dark"] .metric.dashboard-revenue-today,
+:root[data-theme="dark"] .metric.dashboard-revenue-week,
+:root[data-theme="dark"] .metric.finance-received,
+:root[data-theme="dark"] .mobile-revenue-card {
+  border-color: rgba(75, 197, 128, .28);
+  background: rgba(34, 148, 90, .14);
+}
+
+:root[data-theme="dark"] .metric.dashboard-revenue-today > span,
+:root[data-theme="dark"] .metric.dashboard-revenue-week > span,
+:root[data-theme="dark"] .metric.finance-received > span,
+:root[data-theme="dark"] .mobile-revenue-card > span,
+:root[data-theme="dark"] .mobile-revenue-card__values small {
+  color: #9bd8b6;
+}
+
+:root[data-theme="dark"] .metric.dashboard-revenue-today > strong,
+:root[data-theme="dark"] .metric.dashboard-revenue-week > strong,
+:root[data-theme="dark"] .metric.finance-received > strong,
+:root[data-theme="dark"] .mobile-revenue-card__values strong {
+  color: #e8fff0;
+}
+
+:root[data-theme="dark"] .metric.dashboard-revenue-today > small,
+:root[data-theme="dark"] .metric.dashboard-revenue-week > small,
+:root[data-theme="dark"] .metric.finance-received > small {
+  color: #b8c9be;
+}
+
+:root[data-theme="dark"] .modal__close,
+:root[data-theme="dark"] .payment-choice__close {
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .form-error {
+  background: #3b1d1b;
+  color: #ffaaa3;
+}
+
+:root[data-theme="dark"] .login__brand > b {
+  background: #262d28;
+  color: #fff;
+}
+
+:root[data-theme="dark"] .profile > span {
+  background: #6c8cff;
+}
+
+:root[data-theme="dark"] .initial-setup__icon {
+  background: rgba(108, 140, 255, .14);
+  color: #6c8cff;
+}
+
+:root[data-theme="dark"] .initial-setup p {
+  color: #6c8cff;
+}
+
+@media (max-width: 360px) {
+  .content {
+    padding-inline: 9px;
+  }
+
+  .bottom-nav a {
+    font-size: 8px;
+  }
+
+  .appointment {
+    grid-template-columns: 43px minmax(0, 1fr);
+  }
+
+  .appointment > b {
+    display: none;
+  }
+
+  .appointment > .badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .modal dl div {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+}

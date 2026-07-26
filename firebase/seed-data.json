@@ -1,0 +1,25 @@
+{
+  "settings/public": {
+    "businessName": "Barbearia Exemplo",
+    "publicPhone": "81999999999",
+    "timezone": "America/Recife",
+    "slotIntervalMinutes": 30,
+    "minimumNoticeMinutes": 60,
+    "bookingAdvanceDays": 30,
+    "weeklySchedule": {
+      "sunday": [],
+      "monday": [{ "start": "08:00", "end": "12:00" }, { "start": "14:00", "end": "19:00" }],
+      "tuesday": [{ "start": "08:00", "end": "12:00" }, { "start": "14:00", "end": "19:00" }],
+      "wednesday": [{ "start": "08:00", "end": "12:00" }, { "start": "14:00", "end": "19:00" }],
+      "thursday": [{ "start": "08:00", "end": "12:00" }, { "start": "14:00", "end": "19:00" }],
+      "friday": [{ "start": "08:00", "end": "12:00" }, { "start": "14:00", "end": "19:00" }],
+      "saturday": [{ "start": "08:00", "end": "14:00" }]
+    }
+  },
+  "services": [
+    { "id": "corte-tradicional", "name": "Corte tradicional", "description": "Corte clássico com acabamento", "durationMinutes": 30, "priceCents": 3500, "active": true, "sortOrder": 1 },
+    { "id": "degrade", "name": "Degradê", "description": "Degradê com acabamento", "durationMinutes": 45, "priceCents": 4500, "active": true, "sortOrder": 2 },
+    { "id": "barba", "name": "Barba", "description": "Modelagem e acabamento", "durationMinutes": 30, "priceCents": 3000, "active": true, "sortOrder": 3 },
+    { "id": "corte-e-barba", "name": "Corte e barba", "description": "Experiência completa", "durationMinutes": 60, "priceCents": 6000, "active": true, "sortOrder": 4 }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "barbearia-system",
+  "private": true,
+  "workspaces": ["client-app", "admin-app", "firebase"],
+  "scripts": {
+    "build": "npm run build --prefix client-app && npm run build --prefix admin-app",
+    "dev:client:local": "firebase emulators:exec --project barbearia-local --only auth,firestore \"npm run seed --prefix firebase && npm run dev --prefix client-app\"",
+    "migrate:summaries": "node firebase/scripts/migrate-financial-summaries.cjs",
+    "test:rules": "firebase emulators:exec --project barbearia-rules-test --only firestore \"npm test --prefix firebase\"",
+    "test": "npm run test:rules && npm run build"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.24.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1",
+    "teeny-request": {
+      "uuid": "^11.1.1"
+    }
+  }
+}

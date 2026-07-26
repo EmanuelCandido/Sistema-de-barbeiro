@@ -1,0 +1,553 @@
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    color: #17171b;
+    background: #fff;
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --ink: #17171b;
+    --muted: #76767d;
+    --line: #dedee3;
+    --paper: #fff;
+    --accent: #17171b;
+    --accent-dark: #000;
+  }
+
+  body {
+    color: var(--ink);
+    background: #fff;
+  }
+
+  .brand h1,
+  .heading h2,
+  .empty h3,
+  .empty h1,
+  .success h1 {
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  }
+
+  .time-grid button,
+  input[type="time"] {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .brand {
+    margin-bottom: 22px;
+  }
+
+  .brand__mark {
+    background: #f1f1f3;
+    color: #17171b;
+  }
+
+  .brand small,
+  .heading p,
+  .success > p {
+    color: #696970;
+  }
+
+  .brand h1,
+  .heading h2,
+  .success h1 {
+    letter-spacing: -.04em;
+  }
+
+  .booking-card,
+  .success {
+    border-color: var(--line);
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: none;
+  }
+
+  .progress {
+    border-color: #ececef;
+  }
+
+  .progress__track {
+    background: #eeeeF1;
+  }
+
+  .progress__track span {
+    background: #17171b;
+  }
+
+  .service,
+  .date-strip button,
+  .time-grid button,
+  .review div {
+    border-color: var(--line);
+    background: #fafafa;
+    color: var(--ink);
+  }
+
+  .service__icon {
+    background: #f0f0f2;
+    color: #17171b;
+  }
+
+  .service:hover,
+  .service:focus-visible,
+  .service.is-selected {
+    border-color: #17171b;
+    background: #f4f4f4;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, .08);
+  }
+
+  .date-strip button.is-selected,
+  .time-grid button.is-selected {
+    border-color: #17171b;
+    background: #17171b;
+    color: #fff;
+  }
+
+  .fields input,
+  .fields textarea {
+    border-color: var(--line);
+    background: #fafafa;
+    color: var(--ink);
+  }
+
+  .button--primary {
+    background: #17171b;
+    color: #fff;
+  }
+
+  .button--primary:hover {
+    background: #303035;
+  }
+
+  .button--ghost {
+    border-color: var(--line);
+    background: #fff;
+    color: var(--ink);
+  }
+
+  .review {
+    border-color: var(--line);
+  }
+
+  .review div {
+    border-color: #e7e7ea;
+  }
+
+  .review__edit {
+    border-color: var(--line);
+    background: #f3f3f5;
+    color: #17171b;
+  }
+
+  .success__icon {
+    background: #effbef;
+    color: #319553;
+  }
+
+  .success aside {
+    background: #f7f7f8;
+    color: #66666d;
+  }
+
+  .calendar {
+    border-color: var(--line);
+    background: #fff;
+  }
+
+  .calendar__header button,
+  .calendar__grid button {
+    border-color: transparent;
+    background: #f7f7f8;
+    color: var(--ink);
+  }
+
+  .calendar__header button {
+    border-color: var(--line);
+  }
+
+  .calendar__grid button:hover:not(:disabled) {
+    border-color: #17171b;
+    background: #f2f2f2;
+  }
+
+  .calendar__grid button.is-closed {
+    background: #f1f1f3;
+    color: #96969c;
+  }
+
+  .calendar__grid button.is-selected {
+    border-color: #17171b;
+    background: #17171b;
+    color: #fff;
+    box-shadow: none;
+  }
+
+  .calendar__grid .calendar__status {
+    background: #37aa61;
+  }
+
+  .calendar__grid .calendar__status--full {
+    background: #a3a3a8;
+  }
+
+  .calendar footer i {
+    background: #37aa61;
+  }
+
+  .calendar footer span:last-child i {
+    background: #a3a3a8;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #f1f1f3 25%, #fafafa 50%, #f1f1f3 75%);
+    background-size: 200% 100%;
+  }
+
+  @media (max-width: 599px) {
+    .shell {
+      width: calc(100% - 32px);
+      padding-top: 22px;
+    }
+
+    .brand {
+      margin-inline: 0;
+    }
+
+    .booking-card,
+    .success {
+      border-radius: 16px;
+    }
+
+    .step {
+      padding: 22px 18px;
+    }
+
+    .heading h2 {
+      font-size: 26px;
+    }
+
+    .service {
+      border-radius: 14px;
+    }
+
+    .time-grid button {
+      border-radius: 12px;
+    }
+  }
+}
+
+.service {
+  position: relative;
+  padding-right: 52px;
+}
+
+.service__check {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  transform: translateY(-50%);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: transparent;
+}
+
+.service.is-selected .service__check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.service-selection-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.service-selection-summary strong {
+  color: var(--ink);
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .service {
+    padding-right: 42px;
+  }
+
+  .service__check {
+    right: 9px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .service-selection-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .service-selection-summary strong {
+    text-align: left;
+  }
+}
+
+.progress {
+  padding: 18px 20px;
+}
+
+.service.service--no-icon {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-left: 18px;
+}
+
+.progress__steps {
+  --progress-size: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress__steps::before,
+.progress__steps::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: calc(var(--progress-size) / 2 - 1.5px);
+  left: calc(var(--progress-size) / 2);
+  height: 3px;
+  border-radius: 999px;
+}
+
+.progress__steps::before {
+  right: calc(var(--progress-size) / 2);
+  background: #e8e6e4;
+}
+
+.progress__steps::after {
+  right: calc(var(--progress-size) / 2);
+  background: #0b0b0d;
+  transform: scaleX(var(--progress-ratio));
+  transform-origin: left center;
+  transition: transform .25s ease;
+}
+
+.progress__steps li {
+  display: grid;
+  place-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.progress__steps li > span {
+  display: grid;
+  place-items: center;
+  width: var(--progress-size);
+  height: var(--progress-size);
+  border-radius: 50%;
+  background: #e8e6e4;
+  color: #7d7d80;
+  font: 500 17px/1 "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.progress__steps li.is-active > span {
+  background: #0b0b0d;
+  color: #fff;
+}
+
+.actions .button--primary {
+  min-height: 42px;
+  border-radius: 999px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .progress__steps::before {
+    background: #2b302c;
+  }
+
+  .progress__steps::after {
+    background: #fff;
+  }
+
+  .progress__steps li > span {
+    background: #2b302c;
+    color: #aeb3af;
+  }
+
+  .progress__steps li.is-active > span {
+    background: #fff;
+    color: #0b0b0d;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 599px) {
+  .progress {
+    padding: 15px 16px;
+  }
+
+  .progress__steps {
+    --progress-size: 32px;
+  }
+
+  .progress__steps li > span {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --accent: #fff;
+    --accent-dark: #fff;
+  }
+
+  .brand h1,
+  .heading h2,
+  .empty h3,
+  .empty h1,
+  .success h1 {
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  }
+
+  .brand {
+    margin-bottom: 22px;
+  }
+
+  .brand h1,
+  .heading h2,
+  .success h1 {
+    letter-spacing: -.04em;
+  }
+
+  .booking-card,
+  .success {
+    border-radius: 18px;
+    box-shadow: none;
+  }
+
+  .progress__track span {
+    background: #fff;
+  }
+
+  .service:hover,
+  .service:focus-visible,
+  .service.is-selected {
+    border-color: #fff;
+    background: rgba(255, 255, 255, .08);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .12);
+  }
+
+  .service__icon {
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+  }
+
+  .date-strip button.is-selected,
+  .time-grid button.is-selected,
+  .calendar__grid button.is-selected {
+    border-color: #fff;
+    background: #fff;
+    color: #0b0b0d;
+  }
+
+  .calendar__grid button:hover:not(:disabled) {
+    border-color: #fff;
+    background: rgba(255, 255, 255, .1);
+  }
+
+  .review__edit {
+    border-color: rgba(255, 255, 255, .28);
+    background: rgba(255, 255, 255, .07);
+    color: #fff;
+  }
+
+  .review__edit:hover {
+    border-color: rgba(255, 255, 255, .48);
+    background: rgba(255, 255, 255, .13);
+  }
+
+  .button--primary {
+    border-color: #fff;
+    background: #fff;
+    color: #0b0b0d;
+  }
+
+  .button--primary:hover {
+    border-color: #e7e7e7;
+    background: #e7e7e7;
+    color: #0b0b0d;
+  }
+
+  .button:focus-visible,
+  .service:focus-visible,
+  .date-strip button:focus-visible,
+  .time-grid button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline-color: #fff;
+  }
+
+  .heading p,
+  .brand small,
+  .success > p,
+  .edit-toolbar small {
+    color: #fff;
+  }
+
+  .time-grid button,
+  input[type="time"] {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 599px) {
+    .shell {
+      width: calc(100% - 32px);
+      padding-top: 22px;
+    }
+
+    .brand {
+      margin-inline: 0;
+    }
+
+    .booking-card,
+    .success {
+      border-radius: 16px;
+    }
+
+    .step {
+      padding: 22px 18px;
+    }
+
+    .heading h2 {
+      font-size: 26px;
+    }
+
+    .service {
+      border-radius: 14px;
+    }
+
+    .time-grid button {
+      border-radius: 12px;
+    }
+  }
+}

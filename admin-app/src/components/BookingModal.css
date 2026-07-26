@@ -1,0 +1,61 @@
+.payment-choice-backdrop{position:fixed;z-index:50;inset:0;display:grid;place-items:center;padding:18px;background:rgba(16,18,16,.68);backdrop-filter:blur(2px)}
+.payment-choice{position:relative;width:min(100%,440px);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;padding:27px;border:1px solid var(--line);border-radius:18px;background:var(--paper);color:var(--ink);box-shadow:0 24px 80px rgba(0,0,0,.38)}
+.payment-choice>p{margin:0 0 7px;color:#218e52;font-size:10px;font-weight:850;letter-spacing:.16em}
+.payment-choice h3{margin:0 35px 6px 0;font:700 28px Georgia,serif}
+.payment-choice__hint{display:block;color:var(--muted);font-size:13px;line-height:1.45}
+.payment-choice__close{position:absolute;top:14px;right:15px;border:0;background:none;color:var(--ink);font-size:27px;cursor:pointer}
+.payment-options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:23px 0}
+.payment-options button{display:grid;place-items:center;gap:7px;min-height:100px;padding:12px 8px;border:2px solid var(--line);border-radius:13px;background:#faf9f5;color:var(--ink);cursor:pointer}
+.payment-options button:hover{border-color:#bd927b;background:#fff8f4}
+.payment-options button.selected{border-color:#24a960;background:rgba(36,169,96,.09);box-shadow:0 0 0 3px rgba(36,169,96,.1)}
+.payment-options svg{color:#24a960}.payment-options button.selected svg{color:currentColor}.payment-options span{font-size:13px;font-weight:800}
+.payment-services{margin:-9px 0 18px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.025);overflow:hidden}
+.payment-services__toggle{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;min-height:58px;padding:10px 12px;border:0;background:transparent;color:var(--ink);text-align:left;cursor:pointer}
+.payment-services__toggle>span{display:grid;gap:2px;min-width:0}.payment-services__toggle strong{font-size:12px}.payment-services__toggle small{color:var(--muted);font:500 10px "Inter",sans-serif}.payment-services__toggle svg{flex:0 0 auto;color:var(--muted)}
+.payment-services.is-open .payment-services__toggle{border-bottom:1px solid var(--line)}
+.payment-services .booking-service-picker{margin:0;padding:10px 12px 12px}
+.booking-service-picker--compact .booking-service-option{min-height:46px;padding:8px 9px}
+.booking-service-picker--compact .booking-service-total{position:static;margin:0;padding:8px 10px;border:0;border-radius:8px}
+.payment-choice__actions{display:flex;justify-content:flex-end;gap:10px}
+.action-dialog__fields{display:grid;gap:13px;margin:22px 0}
+.action-dialog__fields--row{grid-template-columns:1.35fr 1fr}
+.action-dialog__fields label{font-size:12px;font-weight:750}
+.action-dialog__fields input,.action-dialog__fields textarea{display:block;width:100%;min-height:45px;margin-top:6px;padding:10px 11px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink)}
+.action-dialog__fields textarea{min-height:86px;resize:vertical}
+.action-dialog__fields label small{display:block;margin-top:4px;color:var(--muted);font-size:10px;text-align:right}
+.action-dialog__summary{margin:0 0 18px;padding:11px 13px;border-radius:9px;background:#f5f3ed;color:var(--muted);font-size:12px}
+.booking-service-picker{display:grid;gap:9px;margin:0 0 18px;padding:0;border:0}
+.booking-service-picker legend{display:flex;align-items:baseline;gap:7px;margin-bottom:8px;font-size:12px;font-weight:800}
+.booking-service-picker legend small{color:var(--muted);font-size:10px;font-weight:500}
+.booking-service-picker__options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.booking-service-option{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;min-height:52px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#faf9f5;color:var(--ink);text-align:left;cursor:pointer}
+.booking-service-option>span{display:grid;min-width:0}.booking-service-option strong{overflow:hidden;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.booking-service-option small{margin-top:2px;color:var(--muted);font-size:9px}.booking-service-option b{flex:0 0 auto;font:700 10px "Inter",sans-serif}
+.booking-service-option.selected{border-color:#24a960;background:rgba(36,169,96,.1);box-shadow:inset 3px 0 #24a960}
+.booking-service-picker__loading{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:11px;text-align:center}
+.booking-service-total{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border-radius:9px;background:#f5f3ed;font-size:11px}.booking-service-total span{color:var(--muted)}.booking-service-total strong{font-family:"Inter",sans-serif}
+.reschedule-dialog{width:min(100%,620px)}
+.reschedule-dialog>p{color:#596fff}
+.reschedule-picker{display:grid;gap:9px;margin:20px 0 17px}.reschedule-picker>label{font-size:11px;font-weight:800}.reschedule-picker>label:not(:first-child){margin-top:5px}
+.reschedule-time-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.reschedule-time-grid button{min-height:40px;border:1px solid var(--line);border-radius:9px;background:#faf9f5;color:var(--ink);font:700 11px "Inter",sans-serif}.reschedule-time-grid button.is-selected{border-color:#6c8cff;background:rgba(108,140,255,.14);color:#596fff;box-shadow:inset 0 0 0 1px #6c8cff}.reschedule-picker__state{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:10px;text-align:center}
+.reschedule-services .booking-service-option.selected{border-color:#6c8cff;background:rgba(108,140,255,.12);box-shadow:inset 3px 0 #6c8cff}.reschedule-dialog .primary{background:#596fff}
+.cancel-dialog .payment-choice__hint{margin:18px 0;line-height:1.65}.danger-primary{border:1px solid #b7423b!important;background:#b7423b!important;color:#fff!important}.danger-primary:hover{background:#98342f!important}
+.modal__actions--details{align-items:center;width:100%}
+.modal__actions--details .details-action{background:transparent}
+.modal__actions--details .details-action--cancel{margin-right:auto;border-color:rgba(211,75,75,.34);background:rgba(211,75,75,.11);color:var(--red)}
+.modal__actions--details .details-action--complete{border-color:rgba(57,120,189,.34);background:rgba(57,120,189,.11);color:#3978bd}
+.modal__actions--details .details-action--cancel:hover{background:rgba(211,75,75,.18)}
+.modal__actions--details .details-action--complete:hover{background:rgba(57,120,189,.18)}
+:root[data-theme="dark"] .modal__actions--details .details-action--cancel{border-color:rgba(239,129,120,.34);background:rgba(239,129,120,.12);color:#ef8178}
+:root[data-theme="dark"] .modal__actions--details .details-action--complete{border-color:rgba(121,172,231,.34);background:rgba(121,172,231,.12);color:#79ace7}
+:root[data-theme="dark"] .action-dialog__fields input,:root[data-theme="dark"] .action-dialog__fields textarea{border-color:var(--line);background:#101411;color:var(--ink)}
+:root[data-theme="dark"] .action-dialog__summary{background:#1b201c;color:var(--muted)}
+:root[data-theme="dark"] .booking-service-option{border-color:var(--line);background:#101411;color:var(--ink)}
+:root[data-theme="dark"] .booking-service-option.selected{border-color:#48c97d;background:rgba(72,201,125,.14);box-shadow:inset 3px 0 #48c97d}
+:root[data-theme="dark"] .booking-service-total{background:#1b201c;color:var(--ink)}
+:root[data-theme="dark"] .payment-services{background:rgba(0,0,0,.24)}
+:root[data-theme="dark"] .reschedule-time-grid button{background:#101411;color:var(--ink)}:root[data-theme="dark"] .reschedule-time-grid button.is-selected{border-color:#6c8cff;background:rgba(108,140,255,.18);color:#c3ceff}:root[data-theme="dark"] .reschedule-services .booking-service-option.selected{border-color:#6c8cff;background:rgba(108,140,255,.16);box-shadow:inset 3px 0 #6c8cff}:root[data-theme="dark"] .reschedule-dialog .primary{background:#596fff;color:#fff}
+@media(max-width:430px){.payment-choice{max-height:calc(100dvh - 16px);overflow:auto;padding:21px 16px}.payment-choice h3{font-size:25px}.payment-options{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:18px 0}.payment-options button{min-width:0;min-height:78px;padding:8px 4px}.payment-options b{font-size:20px}.payment-options span{font-size:11px}.payment-choice__actions{display:grid;grid-template-columns:1fr 1fr}.payment-choice__actions button{min-width:0;padding-inline:8px;font-size:12px}}
+@media(max-width:430px){.action-dialog__fields--row{grid-template-columns:1fr 1fr}.action-dialog__fields{margin:18px 0}.action-dialog__fields input{min-width:0;padding-inline:7px}.action-dialog .payment-choice__actions{grid-template-columns:.75fr 1.25fr}}
+@media(max-width:430px){.booking-service-picker__options{grid-template-columns:1fr}.booking-service-option{min-height:48px}.booking-service-total{position:sticky;bottom:-21px;z-index:2;margin-inline:-16px;padding:12px 16px;border-top:1px solid var(--line);border-radius:0;background:var(--paper)}}
+@media(max-width:430px){.payment-services{margin-top:-6px}.payment-services .booking-service-picker{padding:9px}.booking-service-picker--compact .booking-service-total{position:static;margin:0;padding:8px 10px;border:0;border-radius:8px}}
+@media(max-width:430px){.reschedule-dialog{padding-inline:13px}.reschedule-time-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}

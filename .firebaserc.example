@@ -1,0 +1,11 @@
+{
+  "projects": { "default": "SEU_PROJECT_ID" },
+  "targets": {
+    "SEU_PROJECT_ID": {
+      "hosting": {
+        "client": ["SEU_SITE_CLIENT"],
+        "admin": ["SEU_SITE_ADMIN"]
+      }
+    }
+  }
+}
