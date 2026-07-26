@@ -33,8 +33,8 @@ As imagens abaixo foram produzidas em ambiente local com informações fictícia
     <td align="center"><strong>Revisão do agendamento</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/images/cliente-servicos.png" alt="Tela mobile para escolha de serviços" width="360"></td>
-    <td><img src="docs/images/cliente-revisao.png" alt="Tela mobile de revisão do agendamento com dados fictícios" width="360"></td>
+    <td><img src="docs/images/cliente-servicos-claro.png" alt="Tela mobile em modo claro para escolha de serviços" width="360"></td>
+    <td><img src="docs/images/cliente-revisao-claro.png" alt="Tela mobile em modo claro de revisão do agendamento com dados fictícios" width="360"></td>
   </tr>
 </table>
 
