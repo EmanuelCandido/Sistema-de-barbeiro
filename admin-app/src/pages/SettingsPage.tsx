@@ -9,7 +9,7 @@ import { auth } from "../lib/firebase";
 import { getSettings, saveSettings } from "../services/adminData";
 import type { PublicSettings } from "../types";
 import { Header } from "./DashboardPage";
-import { MIN_PASSWORD_LENGTH, passwordPolicyError } from "../lib/passwordPolicy";
+import { MIN_PASSWORD_LENGTH, passwordPolicyError, passwordStrength } from "../lib/passwordPolicy";
 import { adminMutationError } from "../lib/adminError";
 import "./SettingsPage.css";
 
@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordResolver, setPasswordResolver] = useState<MultiFactorResolver|null>(null);
   const [passwordOtp, setPasswordOtp] = useState("");
+  const newPasswordStrength = passwordStrength(passwords.newPassword);
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -163,7 +164,13 @@ export default function SettingsPage() {
               <input type="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} value={passwords.confirmPassword} onChange={event => setPasswordField("confirmPassword", event.target.value)} />
             </label>
           </div>
-          <small className="settings-hint">Use pelo menos {MIN_PASSWORD_LENGTH} caracteres, com maiúscula, minúscula, número e símbolo. Não reutilize a senha atual.</small>
+          {passwords.newPassword && <div className={`password-strength password-strength--${newPasswordStrength.level}`} aria-live="polite">
+            <div className="password-strength__bar" aria-hidden="true">
+              {[1,2,3].map(level=><span className={level<=newPasswordStrength.level?"active":""} key={level} />)}
+            </div>
+            <div className="password-strength__text"><strong>Senha {newPasswordStrength.label.toLowerCase()}</strong><small>{newPasswordStrength.message}</small></div>
+          </div>}
+          <small className="settings-hint">Mínimo de {MIN_PASSWORD_LENGTH} caracteres. Para uma senha forte, combine letras maiúsculas e minúsculas, números e símbolos. Não reutilize a senha atual.</small>
           {passwordResolver&&<label>
             Código do autenticador
             <input inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} pattern="[0-9]{6}" value={passwordOtp} onChange={event=>{setPasswordOtp(event.target.value.replace(/\D/g,"").slice(0,6));setPasswordError("");}} />

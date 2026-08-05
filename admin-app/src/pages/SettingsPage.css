@@ -32,6 +32,55 @@
   font-size: 12px;
 }
 
+.password-strength {
+  display: grid;
+  gap: 7px;
+  margin: 1px 0 5px;
+}
+
+.password-strength__bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.password-strength__bar span {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background-color .18s ease;
+}
+
+.password-strength--1 .password-strength__bar .active { background: #ef5350; }
+.password-strength--2 .password-strength__bar .active { background: #f3a526; }
+.password-strength--3 .password-strength__bar .active { background: #24a866; }
+
+.password-strength__text {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.password-strength--1 .password-strength__text strong { color: #ef5350; }
+.password-strength--2 .password-strength__text strong { color: #d98a00; }
+.password-strength--3 .password-strength__text strong { color: #24a866; }
+
+.password-strength__text small {
+  color: var(--muted);
+  text-align: right;
+}
+
+@media (max-width: 560px) {
+  .password-strength__text {
+    display: grid;
+    gap: 3px;
+  }
+
+  .password-strength__text small { text-align: left; }
+}
+
 .settings-form .form-error,
 .settings-form .success-message {
   margin: 0 0 14px;
