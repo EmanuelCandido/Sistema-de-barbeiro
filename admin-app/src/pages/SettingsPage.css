@@ -16,7 +16,10 @@
 
 .settings-section-heading h2 {
   margin: 0;
-  font: 700 23px Georgia, serif;
+  font-family: inherit;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .settings-section-heading p {
@@ -30,6 +33,50 @@
   margin: 2px 0 14px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.password-input {
+  position: relative;
+  display: block;
+  margin-top: 6px;
+}
+
+.settings-form .password-input input {
+  margin-top: 0;
+  padding-right: 48px;
+}
+
+.password-visibility {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  place-items: center;
+  background: transparent;
+  cursor: pointer;
+}
+
+.password-visibility:hover {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.password-visibility img {
+  width: 20px;
+  height: 20px;
+  opacity: .72;
+}
+
+:root:not([data-theme="dark"]) .password-visibility img {
+  filter: brightness(0) saturate(100%);
+}
+
+.password-visibility:focus-visible {
+  outline-offset: 0;
 }
 
 .password-strength {

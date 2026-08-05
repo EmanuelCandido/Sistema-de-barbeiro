@@ -25,6 +25,12 @@ const emptyPasswordFields: PasswordFields = {
   confirmPassword: "",
 };
 
+const hiddenPasswordFields: Record<keyof PasswordFields, boolean> = {
+  currentPassword: false,
+  newPassword: false,
+  confirmPassword: false,
+};
+
 export default function SettingsPage() {
   const { user } = useOwnerAuth();
   const [settings, setSettings] = useState<PublicSettings>();
@@ -37,6 +43,7 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordResolver, setPasswordResolver] = useState<MultiFactorResolver|null>(null);
   const [passwordOtp, setPasswordOtp] = useState("");
+  const [visiblePasswords, setVisiblePasswords] = useState(hiddenPasswordFields);
   const newPasswordStrength = passwordStrength(passwords.newPassword);
 
   useEffect(() => {
@@ -104,6 +111,7 @@ export default function SettingsPage() {
       }
       await updatePassword(user, passwords.newPassword);
       setPasswords(emptyPasswordFields);
+      setVisiblePasswords(hiddenPasswordFields);
       setPasswordResolver(null);
       setPasswordOtp("");
       setPasswordChanged(true);
@@ -152,16 +160,36 @@ export default function SettingsPage() {
           </div>
           <label>
             Senha atual
-            <input type="password" autoComplete="current-password" required value={passwords.currentPassword} onChange={event => setPasswordField("currentPassword", event.target.value)} />
+            <PasswordInput
+              visible={visiblePasswords.currentPassword}
+              autoComplete="current-password"
+              value={passwords.currentPassword}
+              onChange={value => setPasswordField("currentPassword", value)}
+              onToggle={() => setVisiblePasswords(current => ({ ...current, currentPassword: !current.currentPassword }))}
+            />
           </label>
           <div className="form-grid">
             <label>
               Nova senha
-              <input type="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} value={passwords.newPassword} onChange={event => setPasswordField("newPassword", event.target.value)} />
+              <PasswordInput
+                visible={visiblePasswords.newPassword}
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                value={passwords.newPassword}
+                onChange={value => setPasswordField("newPassword", value)}
+                onToggle={() => setVisiblePasswords(current => ({ ...current, newPassword: !current.newPassword }))}
+              />
             </label>
             <label>
               Confirmar nova senha
-              <input type="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} value={passwords.confirmPassword} onChange={event => setPasswordField("confirmPassword", event.target.value)} />
+              <PasswordInput
+                visible={visiblePasswords.confirmPassword}
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                value={passwords.confirmPassword}
+                onChange={value => setPasswordField("confirmPassword", value)}
+                onToggle={() => setVisiblePasswords(current => ({ ...current, confirmPassword: !current.confirmPassword }))}
+              />
             </label>
           </div>
           {passwords.newPassword && <div className={`password-strength password-strength--${newPasswordStrength.level}`} aria-live="polite">
@@ -182,6 +210,37 @@ export default function SettingsPage() {
       </div>
     </>
   );
+}
+
+function PasswordInput({
+  visible,
+  autoComplete,
+  minLength,
+  value,
+  onChange,
+  onToggle,
+}: {
+  visible: boolean;
+  autoComplete: "current-password" | "new-password";
+  minLength?: number;
+  value: string;
+  onChange: (value: string) => void;
+  onToggle: () => void;
+}) {
+  const action = visible ? "Ocultar senha" : "Mostrar senha";
+  return <span className="password-input">
+    <input
+      type={visible ? "text" : "password"}
+      autoComplete={autoComplete}
+      required
+      minLength={minLength}
+      value={value}
+      onChange={event => onChange(event.target.value)}
+    />
+    <button type="button" className="password-visibility" onClick={onToggle} aria-label={action} title={action} aria-pressed={visible}>
+      <img src={visible ? "/icons/eye-slash.svg" : "/icons/eye.svg"} alt="" aria-hidden="true" />
+    </button>
+  </span>;
 }
 
 function passwordErrorMessage(error: unknown) {
