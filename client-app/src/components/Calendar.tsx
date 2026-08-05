@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { dateKey } from "../lib/date";
 import "./Calendar.css";
@@ -19,10 +19,6 @@ export function Calendar({ dates, selected, loading, isClosed, statusByDate, onS
   const lastAllowed = dates[dates.length - 1];
   const [visibleMonth, setVisibleMonth] = useState(() => monthStart(selected || firstAllowed || new Date()));
 
-  useEffect(() => {
-    if (selected) setVisibleMonth(monthStart(selected));
-  }, [selected]);
-
   const allowedKeys = useMemo(() => new Set(dates.map(dateKey)), [dates]);
   const cells = useMemo(() => calendarCells(visibleMonth), [visibleMonth]);
   const firstMonth = firstAllowed ? monthStart(firstAllowed) : visibleMonth;
@@ -35,12 +31,12 @@ export function Calendar({ dates, selected, loading, isClosed, statusByDate, onS
   }
 
   return (
-    <div className="calendar" aria-label="Escolha uma data">
+    <div className="calendar" aria-label="Escolha uma data" aria-busy={loading}>
       <header className="calendar__header">
         <div><CalendarDays size={18} aria-hidden="true" /><strong>{monthLabel(visibleMonth)}</strong></div>
         <nav aria-label="Navegar entre meses">
-          <button type="button" disabled={!canGoBack || loading} onClick={() => changeMonth(-1)} aria-label="Mês anterior"><ChevronLeft size={19} /></button>
-          <button type="button" disabled={!canGoForward || loading} onClick={() => changeMonth(1)} aria-label="Próximo mês"><ChevronRight size={19} /></button>
+          <button type="button" disabled={!canGoBack} onClick={() => changeMonth(-1)} aria-label="Mês anterior"><ChevronLeft size={19} /></button>
+          <button type="button" disabled={!canGoForward} onClick={() => changeMonth(1)} aria-label="Próximo mês"><ChevronRight size={19} /></button>
         </nav>
       </header>
       <div className="calendar__weekdays" aria-hidden="true">
@@ -60,7 +56,7 @@ export function Calendar({ dates, selected, loading, isClosed, statusByDate, onS
             <button
               type="button"
               key={key}
-              disabled={!allowed || closed || full || loading}
+              disabled={!allowed || closed || full}
               className={`${selectedDay ? "is-selected" : ""} ${closed ? "is-closed" : ""}`}
               onClick={() => onSelect(date)}
               aria-label={`${date.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}${closed ? ", fechado" : full ? ", sem vagas" : available ? ", disponível" : ""}`}

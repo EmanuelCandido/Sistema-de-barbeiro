@@ -24,11 +24,9 @@ import {
 import {
   getAvailabilityForDate,
   getActiveServices,
+  getCalendarDayForDate,
   getCalendarDays,
-  getCachedCalendarDay,
-  getExceptionForDate,
   getPublicSettings,
-  updateCachedCalendarAvailability,
 } from "../services/publicData";
 import type { CustomerBooking, DateException, PublicSettings, Service } from "../types";
 
@@ -134,15 +132,10 @@ export function ManageBookingPage() {
     setError("");
     try {
       const key = dateKey(date);
-      const cached = getCachedCalendarDay(key);
-      const [availability, dayException] = await Promise.all([
-        getAvailabilityForDate(key),
-        cached ? Promise.resolve(cached.exception) : getExceptionForDate(key),
-      ]);
+      const { availability, exception: dayException } = await getCalendarDayForDate(key);
       if (requestId !== dateRequestId.current) return;
       const availableSlots = { ...availability.occupiedSlots };
       if (key === booking.dateKey) booking.occupiedSlotKeys.forEach((slot) => { delete availableSlots[slot]; });
-      updateCachedCalendarAvailability(key, availability);
       setOccupied(availableSlots);
       setException(dayException);
       setView("time");

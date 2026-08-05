@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, CalendarClock, CircleAlert, Pencil, Scissors, ShieldCheck } from "lucide-react";
 import { addDays, buildAvailableTimes, dateKey, formatDateLong, getPeriods, minutesToTime, money, timeToMinutes } from "../lib/date";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
-import { getActiveServices, getAvailabilityForDate, getCachedCalendarDay, getCalendarDays, getExceptionForDate, getPublicSettings, updateCachedCalendarAvailability } from "../services/publicData";
+import { getActiveServices, getAvailabilityForDate, getCalendarDayForDate, getCalendarDays, getPublicSettings } from "../services/publicData";
 import { createBooking, getActiveCustomerBooking, SlotUnavailableError } from "../services/booking";
 import type { ClientDetails, CustomerBooking, DateException, PublicSettings, Service } from "../types";
 import { Progress } from "../components/Progress";
@@ -86,13 +86,8 @@ export function BookingPage() {
     setSelectedDate(date); setSelectedTime(""); setDateLoading(true); setError("");
     try {
       const key = dateKey(date);
-      const cachedDay=getCachedCalendarDay(key);
-      const [availability, dayException] = await Promise.all([
-        getAvailabilityForDate(key),
-        cachedDay ? Promise.resolve(cachedDay.exception) : getExceptionForDate(key),
-      ]);
+      const { availability, exception: dayException } = await getCalendarDayForDate(key);
       if (requestId !== dateRequestId.current) return;
-      updateCachedCalendarAvailability(key,availability);
       setOccupied(availability.occupiedSlots); setException(dayException); setStep(3);
     } catch {
       if (requestId === dateRequestId.current) setError("Não foi possível consultar os horários desta data.");

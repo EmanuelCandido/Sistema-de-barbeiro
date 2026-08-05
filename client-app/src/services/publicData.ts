@@ -8,6 +8,7 @@ type CalendarDay = { availability: PublicAvailability; exception: DateException 
 let calendarCache: { fromKey: string; toKey: string; loadedAt: number; days: Record<string, CalendarDay> } | null = null;
 const calendarRequests = new Map<string, Promise<Record<string, CalendarDay>>>();
 const calendarCacheTtlMs = 60_000;
+const dateLookupTimeoutMs = 10_000;
 
 export async function getPublicSettings(): Promise<PublicSettings> {
   if (settingsCache) return settingsCache;
@@ -32,6 +33,19 @@ export async function getAvailabilityForDate(key: string): Promise<PublicAvailab
 export async function getExceptionForDate(key: string): Promise<DateException | null> {
   const snapshot = await getDoc(doc(db, "exceptions", key));
   return snapshot.exists() ? snapshot.data() as DateException : null;
+}
+
+export async function getCalendarDayForDate(key: string): Promise<CalendarDay> {
+  const cached = getCachedCalendarDay(key);
+  if (cached) return cached;
+
+  const lookup = Promise.all([
+    getAvailabilityForDate(key),
+    getExceptionForDate(key),
+  ]).then(([availability, exception]) => ({ availability, exception }));
+  const day = await withTimeout(lookup, dateLookupTimeoutMs);
+  updateCachedCalendarAvailability(key, day.availability);
+  return day;
 }
 
 export async function getCalendarDays(fromKey: string, toKey: string): Promise<Record<string, CalendarDay>> {
@@ -74,7 +88,7 @@ export async function getCalendarDays(fromKey: string, toKey: string): Promise<R
 }
 
 export function getCachedCalendarDay(key:string):CalendarDay|null {
-  if(!calendarCache||key<calendarCache.fromKey||key>calendarCache.toKey)return null;
+  if(!calendarCache||Date.now()-calendarCache.loadedAt>=calendarCacheTtlMs||key<calendarCache.fromKey||key>calendarCache.toKey)return null;
   return calendarCache.days[key]??{availability:{occupiedSlots:{}},exception:null};
 }
 
@@ -95,4 +109,18 @@ function normalizeAvailability(data: Record<string, unknown>): PublicAvailabilit
     occupiedSlotKeys,
     occupiedSlots: Object.fromEntries(occupiedSlotKeys.map((key) => [key, true])),
   } as PublicAvailability;
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("A consulta da data demorou além do esperado.")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
