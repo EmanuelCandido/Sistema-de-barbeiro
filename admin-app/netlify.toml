@@ -12,6 +12,7 @@
 
 [[headers]]
   for = "/*"
+  # Firebase authentication and reCAPTCHA flows require their HTTPS endpoint in connect-src.
   [headers.values]
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
