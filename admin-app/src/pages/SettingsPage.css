@@ -1,0 +1,43 @@
+.settings-stack {
+  display: grid;
+  width: min(100%, 750px);
+  gap: 18px;
+}
+
+.settings-stack .settings-form {
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
+}
+
+.settings-section-heading {
+  margin-bottom: 18px;
+}
+
+.settings-section-heading h2 {
+  margin: 0;
+  font: 700 23px Georgia, serif;
+}
+
+.settings-section-heading p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.settings-hint {
+  display: block;
+  margin: 2px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.settings-form .form-error,
+.settings-form .success-message {
+  margin: 0 0 14px;
+}
+
+.settings-form .primary:disabled {
+  cursor: wait;
+  opacity: .65;
+}

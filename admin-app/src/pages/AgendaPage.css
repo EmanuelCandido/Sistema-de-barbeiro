@@ -53,6 +53,42 @@
   grid-column: 3;
 }
 
+.agenda-status-filter {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.agenda-status-filter button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.agenda-status-filter button.is-selected {
+  border-color: #646cff;
+  background: rgba(100, 108, 255, .12);
+  color: #5961e8;
+  box-shadow: inset 0 0 0 1px #646cff;
+}
+
+:root[data-theme="dark"] .agenda-status-filter button {
+  background: #111512;
+}
+
+:root[data-theme="dark"] .agenda-status-filter button.is-selected {
+  border-color: #7d84ff;
+  background: rgba(100, 108, 255, .18);
+  color: #c3c7ff;
+}
+
 @media (max-width: 430px) {
   .week-controls {
     gap: 6px;
@@ -70,5 +106,16 @@
   .week-controls button svg {
     width: 12px;
     height: 12px;
+  }
+
+  .agenda-status-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin: 14px 0;
+  }
+
+  .agenda-status-filter button {
+    min-height: 38px;
+    font-size: 11px;
   }
 }

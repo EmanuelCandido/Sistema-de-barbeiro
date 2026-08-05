@@ -4,19 +4,15 @@ import {
   deleteField,
   doc,
   getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
   runTransaction,
   serverTimestamp,
   Timestamp,
-  where,
   type DocumentData,
   type DocumentSnapshot,
 } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { BookingInputError, buildValidatedSlot } from "../lib/bookingValidation";
+import { MAX_BOOKING_SERVICES } from "../lib/bookingLimits";
 import type {
   ClientDetails,
   CustomerBooking,
@@ -28,6 +24,7 @@ import type {
 
 const activeBookingKey = "activeBookingId";
 const activeStatuses = new Set(["pending", "confirmed"]);
+const bookingRetentionDays = 180;
 
 export class SlotUnavailableError extends Error {}
 export class BookingAccessError extends Error {}
@@ -50,6 +47,7 @@ export async function createBooking(
   const cleanClient = validateClientDetails(client);
   const requestedServiceIds = validateRequestedServices(services);
   const bookingRef = doc(collection(db, "bookings"));
+  const lockRef = doc(db, "customerBookingLocks", uid);
   const serviceRefs = requestedServiceIds.map((serviceId) => doc(db, "services", serviceId));
   const settingsRef = doc(db, "settings", "public");
   const exceptionRef = doc(db, "exceptions", key);
@@ -57,12 +55,27 @@ export async function createBooking(
 
   try {
     const result = await runTransaction(db, async (transaction): Promise<CreateBookingResult> => {
-      const [settingsSnapshot, exceptionSnapshot, availabilitySnapshot, ...serviceSnapshots] = await Promise.all([
+      const [lockSnapshot, settingsSnapshot, exceptionSnapshot, availabilitySnapshot, ...serviceSnapshots] = await Promise.all([
+        transaction.get(lockRef),
         transaction.get(settingsRef),
         transaction.get(exceptionRef),
         transaction.get(availabilityRef),
         ...serviceRefs.map((serviceRef) => transaction.get(serviceRef)),
       ]);
+      if (lockSnapshot.exists()) {
+        const lockedBookingId = lockSnapshot.data().bookingId;
+        if (typeof lockedBookingId !== "string" || !validBookingId(lockedBookingId)) {
+          throw new BookingAccessError("O vínculo seguro do agendamento atual está inconsistente. Fale com a barbearia.");
+        }
+        const lockedBookingSnapshot = await transaction.get(doc(db, "bookings", lockedBookingId));
+        if (!lockedBookingSnapshot.exists()) {
+          throw new BookingAccessError("O agendamento vinculado a esta sessão não foi encontrado. Fale com a barbearia.");
+        }
+        const lockedBooking = bookingFromSnapshot(lockedBookingSnapshot);
+        if (activeStatuses.has(lockedBooking.status)) {
+          throw new BookingInputError("Você já possui um agendamento ativo. Edite ou cancele o horário atual antes de criar outro.");
+        }
+      }
       if (serviceSnapshots.some((snapshot) => !snapshot.exists() || snapshot.data().active !== true)) {
         throw new BookingInputError("Este serviço não está mais disponível.");
       }
@@ -102,6 +115,11 @@ export async function createBooking(
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      transaction.set(lockRef, {
+        bookingId: bookingRef.id,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
       transaction.set(availabilityRef, availabilityMutation(occupiedSlots, bookingRef.id, "create"));
       return {
         bookingId: bookingRef.id,
@@ -128,14 +146,16 @@ export async function rescheduleCustomerBooking(
   if (!validBookingId(bookingId)) throw new BookingInputError("Agendamento inválido.");
   const requestedServiceIds = services ? validateRequestedServices(services) : [];
   const bookingRef = doc(db, "bookings", bookingId);
+  const lockRef = doc(db, "customerBookingLocks", uid);
   const settingsRef = doc(db, "settings", "public");
   const exceptionRef = doc(db, "exceptions", key);
   const serviceRefs = requestedServiceIds.map((serviceId) => doc(db, "services", serviceId));
 
   try {
     const result = await runTransaction(db, async (transaction) => {
-      const [bookingSnapshot, settingsSnapshot, exceptionSnapshot, ...serviceSnapshots] = await Promise.all([
+      const [bookingSnapshot, lockSnapshot, settingsSnapshot, exceptionSnapshot, ...serviceSnapshots] = await Promise.all([
         transaction.get(bookingRef),
+        transaction.get(lockRef),
         transaction.get(settingsRef),
         transaction.get(exceptionRef),
         ...serviceRefs.map((serviceRef) => transaction.get(serviceRef)),
@@ -143,6 +163,7 @@ export async function rescheduleCustomerBooking(
       if (!bookingSnapshot.exists()) throw new BookingAccessError("Agendamento não encontrado.");
       const current = bookingFromSnapshot(bookingSnapshot);
       assertManageableBooking(current, uid);
+      assertBookingLock(lockSnapshot, bookingId);
       if (!settingsSnapshot.exists()) throw new BookingInputError("Configuração da agenda indisponível.");
       if (serviceSnapshots.some((snapshot) => !snapshot.exists() || snapshot.data().active !== true)) {
         throw new BookingInputError("Um dos serviços selecionados não está mais disponível.");
@@ -207,6 +228,9 @@ export async function rescheduleCustomerBooking(
         paymentMethod: deleteField(),
         updatedAt: serverTimestamp(),
       });
+      transaction.update(lockRef, {
+        updatedAt: serverTimestamp(),
+      });
       if (current.dateKey === key) {
         transaction.set(oldAvailabilityRef, availabilityMutation(targetSlots, bookingId, "reschedule-same"));
       } else {
@@ -235,13 +259,18 @@ export async function cancelCustomerBooking(bookingId: string) {
   const uid = requireUid();
   if (!validBookingId(bookingId)) throw new BookingInputError("Agendamento inválido.");
   const bookingRef = doc(db, "bookings", bookingId);
+  const lockRef = doc(db, "customerBookingLocks", uid);
 
   try {
     const result = await runTransaction(db, async (transaction) => {
-      const bookingSnapshot = await transaction.get(bookingRef);
+      const [bookingSnapshot, lockSnapshot] = await Promise.all([
+        transaction.get(bookingRef),
+        transaction.get(lockRef),
+      ]);
       if (!bookingSnapshot.exists()) throw new BookingAccessError("Agendamento não encontrado.");
       const current = bookingFromSnapshot(bookingSnapshot);
       assertManageableBooking(current, uid);
+      assertBookingLock(lockSnapshot, bookingId);
 
       const availabilityRef = doc(db, "publicAvailability", current.dateKey);
       const availabilitySnapshot = await transaction.get(availabilityRef);
@@ -256,9 +285,11 @@ export async function cancelCustomerBooking(bookingId: string) {
         status: "cancelled",
         lastCustomerMutation: "cancel",
         paymentMethod: deleteField(),
+        expiresAt: retentionExpiry(),
         updatedAt: serverTimestamp(),
       });
       transaction.set(availabilityRef, availabilityMutation(occupiedSlots, bookingId, "cancel"));
+      transaction.delete(lockRef);
       return { bookingId, status: "cancelled" as const };
     });
     forgetBookingAccess(bookingId);
@@ -276,30 +307,23 @@ export async function getCustomerBooking(bookingId: string): Promise<CustomerBoo
 }
 
 export async function getActiveCustomerBooking(): Promise<CustomerBooking | null> {
-  const remembered = readRememberedBookingId();
-  if (remembered) {
-    try {
-      const booking = await getCustomerBooking(remembered);
-      if (booking && isActiveFutureBooking(booking)) return booking;
-      forgetBookingAccess(remembered);
-    } catch {
-      forgetBookingAccess(remembered);
-    }
-  }
-
   const uid = auth.currentUser?.uid;
   if (!uid) return null;
-  const snapshot = await getDocs(query(
-    collection(db, "bookings"),
-    where("createdByUid", "==", uid),
-    where("status", "in", ["pending", "confirmed"]),
-    where("startAt", ">", Timestamp.now()),
-    orderBy("startAt", "asc"),
-    limit(1),
-  ));
-  const booking = snapshot.docs[0] ? bookingFromSnapshot(snapshot.docs[0]) : null;
-  if (booking) rememberBookingAccess(booking.id);
-  return booking;
+  const remembered = readRememberedBookingId();
+  const lockSnapshot = await getDoc(doc(db, "customerBookingLocks", uid));
+  if (!lockSnapshot.exists()) {
+    if (remembered) forgetBookingAccess(remembered);
+    return null;
+  }
+  const bookingId = lockSnapshot.data().bookingId;
+  if (typeof bookingId !== "string" || !validBookingId(bookingId)) return null;
+  const booking = await getCustomerBooking(bookingId);
+  if (booking && isActiveBooking(booking)) {
+    rememberBookingAccess(booking.id);
+    return booking;
+  }
+  if (remembered) forgetBookingAccess(remembered);
+  return null;
 }
 
 export function rememberBookingAccess(bookingId: string) {
@@ -323,8 +347,8 @@ function bookingFromSnapshot(snapshot: DocumentSnapshot<DocumentData>): Customer
   return { id: snapshot.id, ...data, serviceIds };
 }
 
-function isActiveFutureBooking(booking: CustomerBooking) {
-  return activeStatuses.has(booking.status) && booking.startAt.toMillis() > Date.now();
+function isActiveBooking(booking: CustomerBooking) {
+  return activeStatuses.has(booking.status);
 }
 
 function validBookingId(value: string) {
@@ -381,6 +405,16 @@ function assertManageableBooking(booking: CustomerBooking, uid: string) {
   if (booking.startAt.toMillis() <= Date.now()) throw new BookingInputError("O horário deste agendamento já começou.");
 }
 
+function assertBookingLock(snapshot: DocumentSnapshot<DocumentData>, bookingId: string) {
+  if (!snapshot.exists() || snapshot.data().bookingId !== bookingId) {
+    throw new BookingAccessError("O vínculo seguro deste agendamento está inconsistente. Fale com a barbearia.");
+  }
+}
+
+function retentionExpiry() {
+  return Timestamp.fromMillis(Date.now() + bookingRetentionDays * 24 * 60 * 60 * 1000);
+}
+
 function availabilityMutation(
   occupiedSlots: Record<string, boolean>,
   bookingId: string,
@@ -408,7 +442,9 @@ function availabilityMap(data: Partial<PublicAvailability>) {
 function validateRequestedServices(services: Service[]) {
   const ids = services.map((service) => service.id);
   if (ids.length < 1) throw new BookingInputError("Selecione pelo menos um serviço.");
-  if (ids.length > 2) throw new BookingInputError("Selecione no máximo 2 serviços por agendamento.");
+  if (ids.length > MAX_BOOKING_SERVICES) {
+    throw new BookingInputError(`Selecione no máximo ${MAX_BOOKING_SERVICES} serviços por agendamento.`);
+  }
   if (new Set(ids).size !== ids.length || ids.some((id) => !/^[A-Za-z0-9_-]{1,128}$/.test(id))) {
     throw new BookingInputError("Seleção de serviços inválida.");
   }

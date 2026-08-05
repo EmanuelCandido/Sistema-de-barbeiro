@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, CheckCircle2, Clock3, Copy, Settings, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 import { BookingModal } from "../components/BookingModal";
-import { StatusBadge } from "../components/StatusBadge";
+import { isBookingOverdue, StatusBadge } from "../components/StatusBadge";
 import { money, startOfWeek, todayKey } from "../lib/format";
-import { getSettings } from "../services/adminData";
+import { getCalendarDays, getSettings } from "../services/adminData";
 import { subscribeWeekBookings } from "../services/bookings";
 import type { Booking, Period } from "../types";
 import "./DashboardPage.css";
 
 export default function DashboardPage() {
-  const [, setClockTick] = useState(() => Date.now());
+  const [now,setClockTick] = useState(() => Date.now());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [agendaBookings, setAgendaBookings] = useState<Booking[]>([]);
   const selectedAgendaDate = todayKey();
@@ -34,12 +34,13 @@ export default function DashboardPage() {
     const finish=()=>{if(active&&settingsReady&&bookingsReady)setLoading(false)};
     setLoading(true);
 
-    void getSettings().then(settings=>{
+    void Promise.all([getSettings(),getCalendarDays(selectedAgendaDate,selectedAgendaDate)]).then(([settings,days])=>{
       if(!active)return;
       setSlotInterval(settings.slotIntervalMinutes);
       const weekday=new Date(`${selectedAgendaDate}T12:00:00Z`).getUTCDay();
       const weekKeys=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
-      setAgendaPeriods(settings.weeklySchedule[weekKeys[weekday]]||[]);
+      const exception=days[selectedAgendaDate]?.exception;
+      setAgendaPeriods(exception?.closed?[]:exception?.customPeriods?.length?exception.customPeriods:settings.weeklySchedule[weekKeys[weekday]]||[]);
     }).finally(()=>{settingsReady=true;finish()});
 
     const unsubscribe=subscribeWeekBookings(startOfWeek(),items=>{
@@ -58,12 +59,19 @@ export default function DashboardPage() {
   const today = selectedAgendaDate;
   const todayBookings = bookings.filter((booking) => booking.dateKey === today && booking.status !== "cancelled");
   const agendaTimelineBookings = agendaBookings.filter((booking) => booking.status !== "cancelled");
-  const currentTime = new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Recife", hour: "2-digit", minute: "2-digit" });
-  const next = todayBookings
-    .filter((booking) => (booking.status === "pending" || booking.status === "confirmed") && booking.startTime >= currentTime)
-    .sort((first, second) => first.startTime.localeCompare(second.startTime))[0];
+  const currentTime = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Recife", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(now));
+  const currentMinutes = toMinutes(currentTime);
+  const actionableBookings = todayBookings
+    .filter((booking) => booking.status === "pending" || booking.status === "confirmed")
+    .sort((first, second) => first.startTime.localeCompare(second.startTime));
+  const current = actionableBookings.find((booking) => {
+    const start=toMinutes(booking.startTime);
+    const end=toMinutes(booking.endTime);
+    return currentMinutes>=start&&currentMinutes<=end+5;
+  });
+  const next = current||actionableBookings.find((booking) => toMinutes(booking.startTime)>currentMinutes);
   const timeline=useMemo(()=>buildTimeline(agendaTimelineBookings,agendaPeriods),[agendaTimelineBookings,agendaPeriods]);
-  const visibleTimeline=useMemo(()=>timeline.filter(entry=>entry.kind!=="free"||selectedAgendaDate>today||(selectedAgendaDate===today&&entry.start>=currentTime)),[currentTime,selectedAgendaDate,timeline,today]);
+  const visibleTimeline=useMemo(()=>futureFreeTimeline(timeline,currentMinutes,slotInterval),[currentMinutes,slotInterval,timeline]);
 
   const numbers = useMemo(() => ({
     todayCompleted: todayBookings.filter((booking) => booking.status === "completed").reduce((sum, booking) => sum + booking.priceCentsSnapshot, 0),
@@ -78,7 +86,7 @@ export default function DashboardPage() {
         eyebrow="VISÃO GERAL"
         title="Bom trabalho hoje"
         text={new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long", timeZone: "America/Recife" }).format(new Date())}
-        action={<Link className="mobile-settings" to="/configuracoes" aria-label="Abrir configurações" title="Configurações"><Settings size={21} /></Link>}
+        action={<Link className="mobile-settings" href="/configuracoes" aria-label="Abrir configurações" title="Configurações"><Settings size={21} /></Link>}
       />
       {loading ? (
         <div className="loading-card">Carregando resumo…</div>
@@ -86,7 +94,7 @@ export default function DashboardPage() {
         <>
           <section className="dashboard-grid">
             <article className="next-card">
-              <div className="next-card__header"><p>Próximo Atendimento</p></div>
+              <div className="next-card__header"><p>{current?"Atendimento atual":"Próximo Atendimento"}</p></div>
               {next ? (
                 <>
                   <div className="next-card__main"><strong>{next.startTime}</strong><span><button className="next-card__client" onClick={()=>setContact(next)}>{next.clientName}</button><small>{next.serviceNameSnapshot} · {next.durationMinutesSnapshot} min</small></span></div>
@@ -125,7 +133,7 @@ export default function DashboardPage() {
                   <div className="timeline-booking">
                     <div className="timeline-booking__details">
                       <span><button className="timeline-client" onClick={()=>setContact(entry.booking)}>{entry.booking.clientName}</button><small>{entry.booking.serviceNameSnapshot} · {money(entry.booking.priceCentsSnapshot)}</small></span>
-                      <StatusBadge status={entry.booking.status}/>
+                      <StatusBadge status={entry.booking.status} overdue={isBookingOverdue(entry.booking,now)}/>
                     </div>
                     {(entry.booking.status==="pending"||entry.booking.status==="confirmed")&&<div className="timeline-actions">
                       <button className="timeline-action timeline-action--finish" onClick={()=>openBooking(entry.booking,"payment")}><CheckCircle2 size={15}/>Finalizar</button>
@@ -135,7 +143,7 @@ export default function DashboardPage() {
                   </div>
                 </article>
               ))}
-              {!visibleTimeline.length&&<div className="empty-small">Não há horários futuros disponíveis nesta data.</div>}
+              {!visibleTimeline.length&&<div className="empty-small">Não há horários futuros disponíveis hoje.</div>}
             </div>
           </section>
         </>
@@ -183,6 +191,20 @@ function buildTimeline(bookings:Booking[],periods:Period[]):TimelineEntry[]{
   }
   sorted.filter(item=>!included.has(item.id)).forEach(booking=>entries.push({kind:"booking",booking}));
   return entries.sort((a,b)=>(a.kind==="booking"?a.booking.startTime:a.start).localeCompare(b.kind==="booking"?b.booking.startTime:b.start));
+}
+
+function futureFreeTimeline(timeline:TimelineEntry[],currentMinutes:number,interval:number):TimelineEntry[]{
+  const entries:TimelineEntry[]=[];
+  for(const entry of timeline){
+    if(entry.kind==="booking"){entries.push(entry);continue}
+    const start=toMinutes(entry.start);
+    const end=start+entry.duration;
+    if(end<=currentMinutes)continue;
+    if(start>=currentMinutes){entries.push(entry);continue}
+    const futureStart=Math.ceil(currentMinutes/interval)*interval;
+    if(futureStart<end)entries.push({kind:"free",start:toTime(futureStart),duration:end-futureStart});
+  }
+  return entries;
 }
 
 function ContactDialog({booking,close}:{booking:Booking;close:()=>void}){

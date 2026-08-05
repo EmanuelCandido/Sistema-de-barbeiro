@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { ArrowLeft, CalendarClock, CircleAlert, Pencil, Scissors, ShieldCheck } from "lucide-react";
 import { addDays, buildAvailableTimes, dateKey, formatDateLong, getPeriods, minutesToTime, money, timeToMinutes } from "../lib/date";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
@@ -8,12 +8,13 @@ import { createBooking, getActiveCustomerBooking, SlotUnavailableError } from ".
 import type { ClientDetails, CustomerBooking, DateException, PublicSettings, Service } from "../types";
 import { Progress } from "../components/Progress";
 import { Calendar } from "../components/Calendar";
-import { MAX_BOOKING_SERVICES, ServicePicker } from "../components/ServicePicker";
+import { ServicePicker } from "../components/ServicePicker";
+import { MAX_BOOKING_SERVICES } from "../lib/bookingLimits";
 
 const initialClient: ClientDetails = { name: "", phone: "", note: "" };
 
 export function BookingPage() {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const authState = useAnonymousAuth();
   const [step, setStep] = useState(1);
   const [settings, setSettings] = useState<PublicSettings>();
@@ -201,17 +202,17 @@ export function BookingPage() {
   if (authState.error) return <main className="shell"><State title="Configuração necessária" text={authState.error} /></main>;
   if (loading) return <main className="shell"><div className="skeleton" aria-label="Carregando agenda" /></main>;
   if (error && !settings) return <main className="shell"><State title="Agenda indisponível" text={error} retry={() => location.reload()} /></main>;
-  if (activeBooking) return <ExistingBooking booking={activeBooking} businessName={settings?.businessName || "Barbearia"} onNewBooking={() => setActiveBooking(null)} />;
+  if (activeBooking) return <ExistingBooking booking={activeBooking} businessName={settings?.businessName || "Barbearia"} />;
   if (!services.length) return <main className="shell"><State title="Nenhum serviço disponível" text="A barbearia ainda não publicou serviços para agendamento." /></main>;
 
   return (
     <main className="shell">
-      <header className="brand"><span className="brand__mark" aria-hidden="true"><Scissors size={22} /></span><div><small>AGENDE SEU HORÁRIO</small><h1>{settings?.businessName || "Barbearia"}</h1></div></header>
+      <header className="brand"><span className="brand__mark" aria-hidden="true"><Scissors size={22} /></span><div><small>AGENDE SEU HORÁRIO COM</small><h1>{settings?.businessName || "Barbearia"}</h1></div></header>
       <section className={`booking-card ${editing ? "booking-card--editing" : ""}`} aria-busy={submitting}>
         {editing ? <EditToolbar cancel={cancelEdit} /> : <Progress step={step} />}
         <div className="step" key={step}>
           {step === 1 && <>
-            <div className="heading">{editing && <p>EDITAR AGENDAMENTO</p>}<h2>{editing ? "Editar serviços" : "Escolha os serviços"}</h2><span>{editing ? "Adicione, remova ou troque os serviços deste atendimento." : `Selecione até ${MAX_BOOKING_SERVICES} serviços para o mesmo horário.`}</span></div>
+            <div className="heading">{editing && <p>EDITAR AGENDAMENTO</p>}<h2>{editing ? "Editar serviços" : "Escolha os serviços"}</h2><span>{editing ? "Adicione, remova ou troque até dois serviços deste atendimento." : "Selecione até dois serviços para o mesmo horário."}</span></div>
             <ServicePicker services={services} selectedIds={selectedServices.map((service) => service.id)} toggle={toggleService}/>
             <Footer next={editing ? saveServiceEdit : () => setStep(2)} disabled={!selectedServices.length} nextLabel={editing ? "Continuar" : "Continuar"} />
           </>}
@@ -252,21 +253,21 @@ export function BookingPage() {
   );
 }
 
-function ExistingBooking({ booking, businessName, onNewBooking }: { booking: CustomerBooking; businessName: string; onNewBooking: () => void }) {
-  const navigate = useNavigate();
+function ExistingBooking({ booking, businessName }: { booking: CustomerBooking; businessName: string }) {
+  const [, navigate] = useLocation();
+  const canEdit = booking.startAt.toMillis() > Date.now();
   return <main className="shell">
     <header className="brand"><span className="brand__mark" aria-hidden="true"><Scissors size={22} /></span><div><small>SEU AGENDAMENTO</small><h1>{businessName}</h1></div></header>
     <section className="booking-card existing-booking">
       <div className="existing-booking__icon" aria-hidden="true"><CalendarClock size={30}/></div>
-      <div className="heading"><p>HORÁRIO RESERVADO</p><h2>Você já tem um agendamento</h2><span>O acesso fica vinculado com segurança a este navegador.</span></div>
+      <div className="heading"><p>HORÁRIO RESERVADO</p><h2>Você já tem um agendamento</h2><span>{canEdit ? "O acesso fica vinculado com segurança a este navegador." : "Este atendimento aguarda a finalização pela barbearia antes de liberar uma nova reserva."}</span></div>
       <dl className="review">
         <div><dt>Serviços</dt><dd>{booking.serviceNameSnapshot}<small>{booking.durationMinutesSnapshot} minutos · {money(booking.priceCentsSnapshot)}</small></dd></div>
         <div><dt>Data e horário</dt><dd>{formatDateLong(booking.dateKey)}<small>{booking.startTime} às {booking.endTime}</small></dd></div>
         <div><dt>Cliente</dt><dd>{booking.clientName}</dd></div>
       </dl>
       <div className="existing-booking__actions">
-        <button className="button button--primary" onClick={() => navigate(`/agendamento/${booking.id}`)}><Pencil size={17}/>Editar agendamento</button>
-        <button className="button button--ghost" onClick={onNewBooking}>Agendar outro horário</button>
+        {canEdit&&<button className="button button--primary" onClick={() => navigate(`/agendamento/${booking.id}`)}><Pencil size={17}/>Editar agendamento</button>}
       </div>
     </section>
     <p className="secure-note"><ShieldCheck size={15} aria-hidden="true" /> Só este navegador autenticado pode abrir ou alterar os dados.</p>

@@ -18,7 +18,7 @@ export interface Service {
   id: string;
   name: string;
   description?: string;
-  iconKey?: "none" | "complete" | "scissors-comb" | "scissors" | "shaver" | "beard";
+  iconKey?: "none" | "complete" | "scissors-comb" | "scissors" | "shaver" | "beard" | "mustache" | "brush" | "chair" | "spray";
   durationMinutes: number;
   priceCents: number;
   active: boolean;
@@ -62,6 +62,7 @@ export interface CustomerBooking {
   endTime: string;
   startAt: Timestamp;
   endAt: Timestamp;
+  expiresAt?: Timestamp;
   occupiedSlotKeys: string[];
   serviceId: string;
   serviceIds?: string[];

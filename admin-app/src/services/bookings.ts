@@ -16,12 +16,14 @@ import {
   type DocumentData,
   type Unsubscribe,
   type UpdateData,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { addDays, dateKey } from "../lib/format";
 import type { Booking, BookingStatus, FinancialSummary, PaymentMethod, PublicAvailability, Service } from "../types";
 
 const legacyInactiveStatus = ["no", "show"].join("_");
+const bookingRetentionDays = 180;
 type SummaryValues = Omit<FinancialSummary, "updatedAt">;
 
 function normalizeStatus(status: unknown, paymentMethod?: unknown): BookingStatus {
@@ -90,6 +92,19 @@ export async function getMonthBookings(month: string) {
     orderBy("dateKey"),
   ));
   return snapshot.docs.map(item => bookingFromData(item.id, item.data()));
+}
+
+export async function purgeExpiredBookings() {
+  const snapshot = await getDocs(query(
+    collection(db, "bookings"),
+    where("expiresAt", "<=", Timestamp.now()),
+    limit(100),
+  ));
+  if (snapshot.empty) return 0;
+  const batch = writeBatch(db);
+  snapshot.docs.forEach(item => batch.delete(item.ref));
+  await batch.commit();
+  return snapshot.size;
 }
 
 function zeroSummary(): SummaryValues {
@@ -161,6 +176,7 @@ export async function changeBookingStatus(booking: Booking, newStatus: BookingSt
     if (!current.exists()) throw new Error("Agendamento não encontrado.");
     const data = current.data() as Booking;
     const summaryRef = doc(db, "financialSummaries", data.dateKey.slice(0, 7));
+    const lockRef = doc(db, "customerBookingLocks", data.createdByUid);
     const availabilityRef = doc(db, "publicAvailability", data.dateKey);
     const availability = await transaction.get(availabilityRef);
     const occupied = occupiedMap(availability.exists() ? availability.data() : undefined);
@@ -187,8 +203,14 @@ export async function changeBookingStatus(booking: Booking, newStatus: BookingSt
     transaction.update(bookingRef, {
       status: newStatus,
       ...(paymentMethod ? { paymentMethod } : {}),
+      ...(["cancelled", "completed"].includes(newStatus) ? { expiresAt: retentionExpiry() } : { expiresAt: deleteField() }),
       updatedAt: serverTimestamp(),
     });
+    if (newStatus === "cancelled" || newStatus === "completed") {
+      transaction.delete(lockRef);
+    } else if (!wasBlocking) {
+      transaction.set(lockRef, lockMutation(booking.id), { merge: false });
+    }
     transaction.set(summaryRef, summaryMutation(summaryDelta), { merge: true });
   });
 }
@@ -206,6 +228,7 @@ export async function completeBooking(
     const currentSnap = await transaction.get(bookingRef);
     if (!currentSnap.exists()) throw new Error("Agendamento não encontrado.");
     const current = { id: booking.id, ...currentSnap.data() } as Booking;
+    const lockRef = doc(db, "customerBookingLocks", current.createdByUid);
     const startMinutes = Number(current.startTime.slice(0, 2)) * 60 + Number(current.startTime.slice(3));
     const endMinutes = startMinutes + service.durationMinutesSnapshot;
     if (endMinutes >= 24 * 60) throw new Error("O atendimento ultrapassa o fim do dia.");
@@ -229,16 +252,19 @@ export async function completeBooking(
       contribution("completed", paymentMethod, service.priceCentsSnapshot),
     );
 
+    const endAt = Timestamp.fromDate(new Date(`${current.dateKey}T${endTime}:00-03:00`));
     transaction.update(bookingRef, {
       ...service,
       serviceIds: deleteField(),
       endTime,
-      endAt: Timestamp.fromDate(new Date(`${current.dateKey}T${endTime}:00-03:00`)),
+      endAt,
+      expiresAt: retentionExpiry(),
       occupiedSlotKeys,
       status: "completed",
       paymentMethod,
       updatedAt: serverTimestamp(),
     });
+    transaction.delete(lockRef);
     transaction.set(availabilityRef, availabilityMutation(occupied, `admin_${booking.id}`), { merge: false });
     transaction.set(summaryRef, summaryMutation(summaryDelta), { merge: true });
   });
@@ -284,6 +310,7 @@ export async function rescheduleBooking(
     if (!currentSnap.exists()) throw new Error("Agendamento não encontrado.");
 
     const current = { id: booking.id, ...currentSnap.data() } as Booking;
+    const lockRef = doc(db, "customerBookingLocks", current.createdByUid);
     const oldAvailabilityRef = doc(db, "publicAvailability", current.dateKey);
     const newAvailabilityRef = doc(db, "publicAvailability", newDate);
     const oldAvailability = await transaction.get(oldAvailabilityRef);
@@ -301,6 +328,7 @@ export async function rescheduleBooking(
     if (newSlots.some(slot => targetSlots[slot])) throw new Error("O novo horário já está ocupado.");
     newSlots.forEach(slot => { targetSlots[slot] = true; });
 
+    const newEndAt = Timestamp.fromDate(new Date(`${newDate}T${newEnd}:00-03:00`));
     const data: UpdateData<DocumentData> = {
       ...service,
       serviceIds: deleteField(),
@@ -308,7 +336,8 @@ export async function rescheduleBooking(
       startTime: newStart,
       endTime: newEnd,
       startAt: Timestamp.fromDate(new Date(`${newDate}T${newStart}:00-03:00`)),
-      endAt: Timestamp.fromDate(new Date(`${newDate}T${newEnd}:00-03:00`)),
+      endAt: newEndAt,
+      expiresAt: deleteField(),
       occupiedSlotKeys: newSlots,
       status: "pending" as BookingStatus,
       paymentMethod: deleteField(),
@@ -321,6 +350,7 @@ export async function rescheduleBooking(
     const summaryRef = doc(db, "financialSummaries", current.dateKey.slice(0, 7));
 
     transaction.update(bookingRef, data);
+    transaction.set(lockRef, lockMutation(booking.id), { merge: false });
     if (newDate === current.dateKey) {
       transaction.set(oldAvailabilityRef, availabilityMutation(targetSlots, `admin_${booking.id}`), { merge: false });
     } else {
@@ -346,6 +376,7 @@ export async function editBookingDetails(
     const currentSnap = await transaction.get(bookingRef);
     if (!currentSnap.exists()) throw new Error("Agendamento não encontrado.");
     const current = { id: booking.id, ...currentSnap.data() } as Booking;
+    const lockRef = doc(db, "customerBookingLocks", current.createdByUid);
     const startMinutes = Number(current.startTime.slice(0, 2)) * 60 + Number(current.startTime.slice(3));
     const endMinutes = startMinutes + service.durationMinutesSnapshot;
     if (endMinutes >= 24 * 60) throw new Error("O atendimento ultrapassa o fim do dia.");
@@ -372,6 +403,7 @@ export async function editBookingDetails(
       contribution(currentStatus, current.paymentMethod, service.priceCentsSnapshot),
     );
     const summaryRef = doc(db, "financialSummaries", current.dateKey.slice(0, 7));
+    const endAt = Timestamp.fromDate(new Date(`${current.dateKey}T${endTime}:00-03:00`));
     transaction.update(bookingRef, {
       clientName: clientName.trim(),
       clientPhone: clientPhone.replace(/\D/g, ""),
@@ -379,10 +411,13 @@ export async function editBookingDetails(
       ...service,
       serviceIds: deleteField(),
       endTime,
-      endAt: Timestamp.fromDate(new Date(`${current.dateKey}T${endTime}:00-03:00`)),
+      endAt,
       occupiedSlotKeys,
       updatedAt: serverTimestamp(),
     });
+    if (["pending", "confirmed"].includes(currentStatus)) {
+      transaction.set(lockRef, lockMutation(booking.id), { merge: false });
+    }
     transaction.set(summaryRef, summaryMutation(summaryDelta), { merge: true });
   });
 }
@@ -396,6 +431,14 @@ function occupiedSlotsForService(startMinutes: number, durationMinutes: number, 
     throw new Error("A duração selecionada ocupa intervalos demais para este agendamento.");
   }
   return Array.from({ length: count }, (_, index) => toTime(startMinutes + index * interval));
+}
+
+function retentionExpiry() {
+  return Timestamp.fromMillis(Date.now() + bookingRetentionDays * 24 * 60 * 60 * 1000);
+}
+
+function lockMutation(bookingId: string) {
+  return { bookingId, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
 }
 
 export async function rebuildMonthSummary(month: string) {

@@ -59,6 +59,7 @@ textarea {
 .service__icon-image {
   width: 27px;
   height: 27px;
+  filter: invert(1);
   object-fit: contain;
 }
 
@@ -278,7 +279,7 @@ textarea {
   }
 
   .service__icon-image {
-    filter: invert(1);
+    filter: none;
   }
 
   .date-strip button.is-selected {

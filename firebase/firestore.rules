@@ -10,6 +10,9 @@ service cloud.firestore {
     function bookingPath(bookingId) {
       return /databases/$(database)/documents/bookings/$(bookingId);
     }
+    function bookingLockPath(uid) {
+      return /databases/$(database)/documents/customerBookingLocks/$(uid);
+    }
     function availabilityPath(dateKey) {
       return /databases/$(database)/documents/publicAvailability/$(dateKey);
     }
@@ -51,7 +54,9 @@ service cloud.firestore {
         periods.size() <= 3 &&
         (periods.size() < 1 || validPeriod(periods[0])) &&
         (periods.size() < 2 || validPeriod(periods[1])) &&
-        (periods.size() < 3 || validPeriod(periods[2]));
+        (periods.size() < 3 || validPeriod(periods[2])) &&
+        (periods.size() < 2 || periods[0].end <= periods[1].start) &&
+        (periods.size() < 3 || periods[1].end <= periods[2].start);
     }
     function validWeeklySchedule(schedule) {
       return schedule is map &&
@@ -95,7 +100,7 @@ service cloud.firestore {
         (!data.keys().hasAny(["description"]) ||
           (data.description is string && data.description.size() <= 160)) &&
         (!data.keys().hasAny(["iconKey"]) ||
-          data.iconKey in ["none", "complete", "scissors-comb", "scissors", "shaver", "beard"]) &&
+          data.iconKey in ["none", "complete", "scissors-comb", "scissors", "shaver", "beard", "mustache", "brush", "chair", "spray"]) &&
         data.durationMinutes is int &&
         data.durationMinutes >= 5 &&
         data.durationMinutes <= 480 &&
@@ -209,7 +214,7 @@ service cloud.firestore {
         (serviceIds.size() < 2 || validServiceId(serviceIds[1]));
     }
     function validBookingShape(data) {
-      return data.keys().hasOnly(["dateKey", "startTime", "endTime", "startAt", "endAt", "occupiedSlotKeys", "serviceId", "serviceIds", "serviceNameSnapshot", "durationMinutesSnapshot", "priceCentsSnapshot", "clientName", "clientPhone", "clientNote", "status", "paymentMethod", "lastCustomerMutation", "createdByUid", "createdAt", "updatedAt"]) &&
+      return data.keys().hasOnly(["dateKey", "startTime", "endTime", "startAt", "endAt", "expiresAt", "occupiedSlotKeys", "serviceId", "serviceIds", "serviceNameSnapshot", "durationMinutesSnapshot", "priceCentsSnapshot", "clientName", "clientPhone", "clientNote", "status", "paymentMethod", "lastCustomerMutation", "createdByUid", "createdAt", "updatedAt"]) &&
         data.keys().hasAll(["dateKey", "startTime", "endTime", "startAt", "endAt", "occupiedSlotKeys", "serviceId", "serviceNameSnapshot", "durationMinutesSnapshot", "priceCentsSnapshot", "clientName", "clientPhone", "status", "createdByUid", "createdAt", "updatedAt"]) &&
         data.dateKey is string &&
         data.dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
@@ -221,6 +226,10 @@ service cloud.firestore {
         data.startAt is timestamp &&
         data.endAt is timestamp &&
         data.endAt > data.startAt &&
+        (!data.keys().hasAny(["expiresAt"]) || data.expiresAt is timestamp) &&
+        (data.status in ["cancelled", "completed"]
+          ? data.keys().hasAny(["expiresAt"])
+          : !data.keys().hasAny(["expiresAt"])) &&
         validSlotList(data.occupiedSlotKeys) &&
         data.occupiedSlotKeys[0] == data.startTime &&
         data.serviceId is string &&
@@ -341,6 +350,75 @@ service cloud.firestore {
         ? oneServiceSnapshotIsCurrent(data)
         : data.serviceIds.size() == 2 && twoServiceSnapshotIsCurrent(data);
     }
+    function validBookingLock(data) {
+      return data.keys().hasOnly(["bookingId", "createdAt", "updatedAt"]) &&
+        data.keys().hasAll(["bookingId", "createdAt", "updatedAt"]) &&
+        validOpaqueId(data.bookingId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+    function lockMatchesBooking(uid, bookingId) {
+      let lock = getAfter(bookingLockPath(uid)).data;
+      return existsAfter(bookingLockPath(uid)) &&
+        lock.bookingId == bookingId;
+    }
+    function lockReleasedForBooking(uid, bookingId) {
+      return exists(bookingLockPath(uid)) &&
+        get(bookingLockPath(uid)).data.bookingId == bookingId &&
+        !existsAfter(bookingLockPath(uid));
+    }
+    function mayReplaceExistingLock(uid) {
+      let currentLock = get(bookingLockPath(uid)).data;
+      let currentBooking = get(bookingPath(currentLock.bookingId)).data;
+      return exists(bookingLockPath(uid)) &&
+        exists(bookingPath(currentLock.bookingId)) &&
+        currentBooking.createdByUid == uid &&
+        currentBooking.status in ["cancelled", "completed"];
+    }
+    function customerCreatesBookingLock(uid) {
+      let lock = request.resource.data;
+      let booking = getAfter(bookingPath(lock.bookingId)).data;
+      return request.auth.uid == uid &&
+        validBookingLock(lock) &&
+        lock.createdAt == request.time &&
+        lock.updatedAt == request.time &&
+        existsAfter(bookingPath(lock.bookingId)) &&
+        booking.createdByUid == uid &&
+        booking.status == "pending" &&
+        booking.lastCustomerMutation == "create" &&
+        booking.createdAt == request.time;
+    }
+    function customerUpdatesBookingLock(uid) {
+      let lock = request.resource.data;
+      let booking = getAfter(bookingPath(lock.bookingId)).data;
+      return request.auth.uid == uid &&
+        validBookingLock(lock) &&
+        lock.updatedAt == request.time &&
+        existsAfter(bookingPath(lock.bookingId)) &&
+        booking.createdByUid == uid &&
+        booking.status == "pending" &&
+        (
+          (lock.bookingId == resource.data.bookingId &&
+            lock.createdAt == resource.data.createdAt &&
+            booking.lastCustomerMutation == "reschedule" &&
+            booking.updatedAt == request.time) ||
+          (mayReplaceExistingLock(uid) &&
+            lock.bookingId != resource.data.bookingId &&
+            lock.createdAt == request.time &&
+            booking.lastCustomerMutation == "create" &&
+            booking.createdAt == request.time &&
+            booking.updatedAt == request.time)
+        );
+    }
+    function customerDeletesBookingLock(uid) {
+      let booking = getAfter(bookingPath(resource.data.bookingId)).data;
+      return request.auth.uid == uid &&
+        existsAfter(bookingPath(resource.data.bookingId)) &&
+        booking.createdByUid == uid &&
+        booking.status == "cancelled" &&
+        booking.lastCustomerMutation == "cancel" &&
+        booking.updatedAt == request.time;
+    }
     function availabilitySlots(data) {
       return data.keys().hasAny(["occupiedSlotKeys"])
         ? data.occupiedSlotKeys
@@ -403,6 +481,7 @@ service cloud.firestore {
     }
     function validCustomerCreate(data, bookingId) {
       return validOpaqueId(bookingId) &&
+        (!exists(bookingLockPath(request.auth.uid)) || mayReplaceExistingLock(request.auth.uid)) &&
         validCustomerCreateShape(data) &&
         data.createdByUid == request.auth.uid &&
         data.status == "pending" &&
@@ -410,6 +489,7 @@ service cloud.firestore {
         !data.keys().hasAny(["paymentMethod"]) &&
         data.createdAt == request.time &&
         data.updatedAt == request.time &&
+        lockMatchesBooking(request.auth.uid, bookingId) &&
         serviceSnapshotIsCurrent(data) &&
         validTiming(data) &&
         validCreateAvailability(data.dateKey, data.occupiedSlotKeys, bookingId);
@@ -421,11 +501,15 @@ service cloud.firestore {
         after.status == "cancelled" &&
         after.lastCustomerMutation == "cancel" &&
         !after.keys().hasAny(["paymentMethod"]) &&
+        after.expiresAt is timestamp &&
+        after.expiresAt >= request.time + duration.value(179, 'd') &&
+        after.expiresAt <= request.time + duration.value(181, 'd') &&
         after.updatedAt == request.time &&
-        after.diff(before).affectedKeys().hasOnly(["status", "paymentMethod", "lastCustomerMutation", "updatedAt"]);
+        after.diff(before).affectedKeys().hasOnly(["status", "paymentMethod", "lastCustomerMutation", "expiresAt", "updatedAt"]);
     }
     function validCustomerCancel(before, after, bookingId) {
       return validCustomerCancelData(before, after) &&
+        lockReleasedForBooking(request.auth.uid, bookingId) &&
         validCancelAvailability(before.dateKey, before.occupiedSlotKeys, bookingId);
     }
     function validCustomerRescheduleData(before, after) {
@@ -447,6 +531,7 @@ service cloud.firestore {
     }
     function validCustomerReschedule(before, after, bookingId) {
       return validCustomerRescheduleData(before, after) &&
+        lockMatchesBooking(request.auth.uid, bookingId) &&
         validTiming(after) &&
         (
           (before.dateKey == after.dateKey &&
@@ -578,6 +663,19 @@ service cloud.firestore {
       allow get: if signedIn() && (request.auth.uid == uid || isOwner());
       allow list: if isOwner();
       allow create, update, delete: if isOwner();
+    }
+    match /customerBookingLocks/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isOwner());
+      allow list: if isOwner();
+      allow create: if
+        (isPublicClient() && customerCreatesBookingLock(uid)) ||
+        (isOwner() && validBookingLock(request.resource.data));
+      allow update: if
+        (isPublicClient() && customerUpdatesBookingLock(uid)) ||
+        (isOwner() && validBookingLock(request.resource.data));
+      allow delete: if
+        (isPublicClient() && customerDeletesBookingLock(uid)) ||
+        isOwner();
     }
     match /settings/{settingsId} {
       allow get: if settingsId == "public" && signedIn();

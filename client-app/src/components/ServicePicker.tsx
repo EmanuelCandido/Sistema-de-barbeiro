@@ -1,9 +1,8 @@
 import { Check } from "lucide-react";
 import { money } from "../lib/date";
+import { MAX_BOOKING_SERVICES } from "../lib/bookingLimits";
 import type { Service } from "../types";
 import { ServiceIcon } from "./ServiceIcon";
-
-export const MAX_BOOKING_SERVICES = 2;
 
 export function ServicePicker({
   services,
@@ -30,6 +29,7 @@ export function ServicePicker({
           key={service.id}
           onClick={() => toggle(service)}
           aria-pressed={isSelected}
+          disabled={!isSelected && selectedIds.length >= MAX_BOOKING_SERVICES}
         >
           {service.iconKey !== "none" && <span className="service__icon" aria-hidden="true"><ServiceIcon service={service}/></span>}
           <span><strong>{service.name}</strong><small>{service.description || `${service.durationMinutes} minutos`}</small></span>
@@ -39,7 +39,7 @@ export function ServicePicker({
       })}
     </div>
     <div className="service-selection-summary" aria-live="polite">
-      <span>{selected.length} {selected.length === 1 ? "serviço selecionado" : "serviços selecionados"}</span>
+      <span>{selected.length} de {MAX_BOOKING_SERVICES} {selected.length === 1 ? "serviço selecionado" : "serviços selecionados"}</span>
       <strong>{selected.length ? `${duration} min · ${money(price)}` : "Selecione pelo menos um"}</strong>
     </div>
   </>;

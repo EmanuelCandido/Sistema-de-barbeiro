@@ -48,6 +48,14 @@ const beardService = {
   priceCents: 2000,
   sortOrder: 3,
 };
+const finishService = {
+  ...service,
+  name: "Acabamento",
+  description: "Acabamento final",
+  durationMinutes: 30,
+  priceCents: 1500,
+  sortOrder: 4,
+};
 const dailyPeriods = [{ start: "08:00", end: "18:00" }];
 const settings = {
   businessName: "Barbearia Exemplo",
@@ -95,6 +103,7 @@ beforeEach(async () => {
     await setDoc(doc(db, "services", "active"), service);
     await setDoc(doc(db, "services", "inactive"), inactiveService);
     await setDoc(doc(db, "services", "beard"), beardService);
+    await setDoc(doc(db, "services", "finish"), finishService);
     await setDoc(doc(db, "settings", "public"), settings);
     await setDoc(doc(db, "exceptions", secondFutureKey), {
       closed: false,
@@ -159,6 +168,13 @@ async function seedBooking(id = bookingId, data = booking(), occupiedSlots = { "
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
+    if (["pending", "confirmed"].includes(data.status)) {
+      await setDoc(doc(db, "customerBookingLocks", data.createdByUid), {
+        bookingId: id,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
     await setDoc(doc(db, "publicAvailability", data.dateKey), {
       occupiedSlots,
       lastMutationId: "seed",
@@ -173,6 +189,11 @@ async function atomicCreate(context, id = bookingId, data = booking(), oldSlots 
   const occupiedSlots = { ...oldSlots };
   data.occupiedSlotKeys.forEach((slot) => { occupiedSlots[slot] = true; });
   batch.set(doc(db, "bookings", id), data);
+  batch.set(doc(db, "customerBookingLocks", data.createdByUid), {
+    bookingId: id,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
   batch.set(doc(db, "publicAvailability", data.dateKey), {
     occupiedSlotKeys: Object.keys(occupiedSlots).sort(),
     lastMutationId: id,
@@ -189,8 +210,10 @@ async function atomicCancel(context, id = bookingId) {
     status: "cancelled",
     lastCustomerMutation: "cancel",
     paymentMethod: deleteField(),
+    expiresAt: expires(Timestamp.now()),
     updatedAt: serverTimestamp(),
   });
+  batch.delete(doc(db, "customerBookingLocks", "client"));
   batch.set(doc(db, "publicAvailability", futureKey), {
     occupiedSlotKeys: [],
     lastMutationId: id,
@@ -222,6 +245,9 @@ async function atomicReschedule(
     status: "pending",
     lastCustomerMutation: "reschedule",
     paymentMethod: deleteField(),
+    updatedAt: serverTimestamp(),
+  });
+  batch.update(doc(db, "customerBookingLocks", "client"), {
     updatedAt: serverTimestamp(),
   });
   if (targetDate === futureKey) {
@@ -267,6 +293,9 @@ async function atomicServiceChange(context, overrides = {}) {
     ...overrides,
   };
   batch.update(doc(db, "bookings", bookingId), servicePatch);
+  batch.update(doc(db, "customerBookingLocks", "client"), {
+    updatedAt: serverTimestamp(),
+  });
   batch.set(doc(db, "publicAvailability", futureKey), {
     occupiedSlotKeys: servicePatch.occupiedSlotKeys,
     lastMutationId: bookingId,
@@ -285,7 +314,7 @@ describe("leitura pública mínima", () => {
       collection(db, "services"),
       where("active", "==", true),
     )));
-    assert.equal(result.size, 2);
+    assert.equal(result.size, 3);
   });
 
   it("cliente consulta disponibilidade e exceções por intervalo", async () => {
@@ -342,6 +371,58 @@ describe("criação atômica no plano gratuito", () => {
     const saved = (await getDoc(doc(context.firestore(), "bookings", bookingId))).data();
     assert.deepEqual(saved.serviceIds, ["active", "beard"]);
     assert.equal(saved.priceCentsSnapshot, 5500);
+  });
+
+  it("limita a seleção pública a dois serviços", async () => {
+    await assertFails(atomicCreate(env.authenticatedContext("client"), bookingId, booking("client", {
+      endTime: "11:00",
+      endAt: at(futureKey, "11:00"),
+      occupiedSlotKeys: ["09:00", "09:30", "10:00", "10:30"],
+      serviceId: "active+beard+finish",
+      serviceIds: ["active", "beard", "finish"],
+      serviceNameSnapshot: "Corte tradicional + Barba + Acabamento",
+      durationMinutesSnapshot: 120,
+      priceCentsSnapshot: 7000,
+    })));
+  });
+
+  it("bloqueia um segundo horário futuro para o mesmo cliente", async () => {
+    const context = env.authenticatedContext("client");
+    await assertSucceeds(atomicCreate(context));
+    await assertFails(atomicCreate(context, otherBookingId, booking("client", {
+      startTime: "11:00",
+      endTime: "12:00",
+      startAt: at(futureKey, "11:00"),
+      endAt: at(futureKey, "12:00"),
+      occupiedSlotKeys: ["11:00", "11:30"],
+    }), { "09:00": true, "09:30": true }));
+  });
+
+  it("permite novo horário depois de cancelar o atual", async () => {
+    const context = env.authenticatedContext("client");
+    await seedBooking();
+    await assertSucceeds(atomicCancel(context));
+    await assertSucceeds(atomicCreate(context, otherBookingId, booking("client", {
+      startTime: "11:00",
+      endTime: "12:00",
+      startAt: at(futureKey, "11:00"),
+      endAt: at(futureKey, "12:00"),
+      occupiedSlotKeys: ["11:00", "11:30"],
+    })));
+
+  });
+
+  it("continua bloqueando novo horário até a barbearia finalizar", async () => {
+    const context = env.authenticatedContext("client");
+    const pastStart = Timestamp.fromMillis(Date.now() - 60_000);
+    await seedBooking(bookingId, booking("client", { startAt: pastStart }));
+    await assertFails(atomicCreate(context, otherBookingId, booking("client", {
+      startTime: "11:00",
+      endTime: "12:00",
+      startAt: at(futureKey, "11:00"),
+      endAt: at(futureKey, "12:00"),
+      occupiedSlotKeys: ["11:00", "11:30"],
+    }), { "09:00": true, "09:30": true }));
   });
 
   it("bloqueia colisão, snapshot de preço adulterado e disponibilidade isolada", async () => {
@@ -548,6 +629,9 @@ describe("reagendamento protegido", () => {
       paymentMethod: deleteField(),
       updatedAt: serverTimestamp(),
     });
+    batch.update(doc(db, "customerBookingLocks", "client"), {
+      updatedAt: serverTimestamp(),
+    });
     batch.set(doc(db, "publicAvailability", futureKey), {
       occupiedSlotKeys: [],
       lastMutationId: bookingId,
@@ -625,6 +709,9 @@ describe("reagendamento protegido", () => {
       occupiedSlotKeys: ["10:00", "10:30"],
       updatedAt: serverTimestamp(),
     });
+    batch.update(doc(db, "customerBookingLocks", "client"), {
+      updatedAt: serverTimestamp(),
+    });
     batch.set(doc(db, "publicAvailability", futureKey), {
       occupiedSlotKeys: [],
       lastMutationId: bookingId,
@@ -668,6 +755,50 @@ describe("papéis administrativos", () => {
       updatedAt: serverTimestamp(),
     }));
   });
+
+  it("owner salva todas as opções de ícone disponíveis", async () => {
+    const db = env.authenticatedContext("owner").firestore();
+    const iconKeys = ["none", "complete", "scissors-comb", "scissors", "shaver", "beard", "mustache", "brush", "chair", "spray"];
+    for (const [index, iconKey] of iconKeys.entries()) {
+      await assertSucceeds(setDoc(doc(db, "services", `icone-${index}`), {
+        ...service,
+        iconKey,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }));
+    }
+  });
+
+  it("owner não salva uma chave de ícone desconhecida", async () => {
+    const db = env.authenticatedContext("owner").firestore();
+    await assertFails(setDoc(doc(db, "services", "icone-invalido"), {
+      ...service,
+      iconKey: "unknown",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it("owner salva até três períodos ordenados e bloqueia sobreposição", async () => {
+    const db = env.authenticatedContext("owner").firestore();
+    await assertSucceeds(setDoc(doc(db, "exceptions", futureKey), {
+      closed: false,
+      customPeriods: [
+        { start: "08:00", end: "10:00" },
+        { start: "10:00", end: "12:00" },
+        { start: "14:00", end: "18:00" },
+      ],
+      updatedAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(db, "exceptions", futureKey), {
+      closed: false,
+      customPeriods: [
+        { start: "08:00", end: "12:00" },
+        { start: "11:30", end: "14:00" },
+      ],
+      updatedAt: serverTimestamp(),
+    }));
+  });
 });
 
 function keyFromNow(days) {
@@ -678,4 +809,8 @@ function keyFromNow(days) {
 
 function at(key, time) {
   return Timestamp.fromDate(new Date(`${key}T${time}:00-03:00`));
+}
+
+function expires(endAt) {
+  return Timestamp.fromMillis(endAt.toMillis() + 180 * 24 * 60 * 60 * 1000);
 }

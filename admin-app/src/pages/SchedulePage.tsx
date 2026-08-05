@@ -16,6 +16,9 @@ export default function SchedulePage() {
   const [closed, setClosed] = useState(true);
   const [reason, setReason] = useState("");
   const [specialPeriods, setSpecialPeriods] = useState<Period[]>([]);
+  const [exceptionSaving, setExceptionSaving] = useState(false);
+  const [exceptionError, setExceptionError] = useState("");
+  const [exceptionSaved, setExceptionSaved] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -65,10 +68,23 @@ export default function SchedulePage() {
   }
   async function addException() {
     if (!specialDate) return;
-    await saveException(specialDate, { closed, ...(closed ? {} : {customPeriods:specialPeriods}), reason });
-    setExceptions(await getExceptions()); setSpecialDate(""); setReason(""); setSpecialPeriods([]); setClosed(true);
+    const validation=closed?"":validatePeriods(specialPeriods,"Os horários especiais");
+    if(validation){setExceptionError(validation);return;}
+    setExceptionSaving(true);setExceptionError("");setExceptionSaved(false);
+    try{
+      await saveException(specialDate, { closed, ...(closed ? {} : {customPeriods:specialPeriods}), reason });
+      setExceptions(await getExceptions()); setSpecialDate(""); setReason(""); setSpecialPeriods([]); setClosed(true);setExceptionSaved(true);
+      setTimeout(()=>setExceptionSaved(false),2500);
+    }catch(reason){
+      console.error("Falha ao salvar exceção",reason);
+      setExceptionError("Não foi possível salvar a exceção. Revise os horários e tente novamente.");
+    }finally{setExceptionSaving(false);}
   }
-  async function deleteException(key:string) { await removeException(key); setExceptions(await getExceptions()); }
+  async function deleteException(key:string) {
+    setExceptionError("");setExceptionSaved(false);
+    try{await removeException(key);setExceptions(await getExceptions());}
+    catch(reason){console.error("Falha ao remover exceção",reason);setExceptionError("Não foi possível remover a exceção. Tente novamente.");}
+  }
 
   return <>
     <Header eyebrow="DISPONIBILIDADE" title="Horários de atendimento" text="Use mais de um período para representar o intervalo de almoço." />
@@ -99,11 +115,13 @@ export default function SchedulePage() {
     <section className="panel exceptions">
       <div className="panel__header"><div><p>EXCEÇÕES</p><h2>Bloqueios e horários especiais</h2></div></div>
       <div className="exception-form">
-        <label>Data<input type="date" value={specialDate} onChange={e=>setSpecialDate(e.target.value)}/></label>
-        <label className="check"><input type="checkbox" checked={closed} onChange={e=>setClosed(e.target.checked)}/> Dia fechado</label>
+        <label>Data<input type="date" value={specialDate} onChange={e=>{setSpecialDate(e.target.value);setExceptionError("");}}/></label>
+        <label className="check"><input type="checkbox" checked={closed} onChange={e=>{setClosed(e.target.checked);setExceptionError("");}}/> Dia fechado</label>
         <label>Motivo opcional<input maxLength={160} value={reason} onChange={e=>setReason(e.target.value)}/></label>
-        {!closed && <div className="special-periods">{specialPeriods.map((period,index)=><div className="period" key={index}><input aria-label="Início" type="time" value={period.start} onChange={e=>setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,start:e.target.value}:item))}/><span>até</span><input aria-label="Fim" type="time" value={period.end} onChange={e=>setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,end:e.target.value}:item))}/><button aria-label="Remover período especial" title="Remover período" onClick={()=>setSpecialPeriods(items=>items.filter((_,i)=>i!==index))}><X size={23}/></button></div>)}<button className="secondary" onClick={()=>setSpecialPeriods(items=>[...items,{start:"08:00",end:"12:00"}])}>+ Período especial</button></div>}
-        <button className="primary compact" disabled={!specialDate || (!closed && !specialPeriods.length)} onClick={addException}>Adicionar exceção</button>
+        {!closed && <div className="special-periods">{specialPeriods.map((period,index)=><div className="period" key={index}><input aria-label="Início" type="time" value={period.start} onChange={e=>{setExceptionError("");setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,start:e.target.value}:item));}}/><span>até</span><input aria-label="Fim" type="time" value={period.end} onChange={e=>{setExceptionError("");setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,end:e.target.value}:item));}}/><button type="button" aria-label="Remover período especial" title="Remover período" onClick={()=>setSpecialPeriods(items=>items.filter((_,i)=>i!==index))}><X size={23}/></button></div>)}<button type="button" className="secondary" disabled={specialPeriods.length>=3} onClick={()=>setSpecialPeriods(items=>items.length<3?[...items,{start:"08:00",end:"12:00"}]:items)}>+ Período especial</button></div>}
+        {exceptionError&&<p className="form-error" role="alert">{exceptionError}</p>}
+        {exceptionSaved&&<p className="success-message" role="status">Exceção salva.</p>}
+        <button type="button" className="primary compact" disabled={exceptionSaving||!specialDate || (!closed && !specialPeriods.length)} onClick={addException}>{exceptionSaving?"Salvando…":"Adicionar exceção"}</button>
       </div>
       <div className="exception-list">{exceptions.map(item=><article key={item.id}><div><strong>{new Intl.DateTimeFormat("pt-BR",{timeZone:"UTC",dateStyle:"long"}).format(new Date(`${item.id}T12:00:00Z`))}</strong><small>{item.closed ? "Fechado" : item.customPeriods?.map(p=>`${p.start}–${p.end}`).join(", ")}{item.reason ? ` · ${item.reason}` : ""}</small></div><button className="text-danger" onClick={()=>deleteException(item.id)}>Remover</button></article>)}{!exceptions.length&&<p className="empty-row">Nenhuma exceção cadastrada.</p>}</div>
     </section>
@@ -114,11 +132,19 @@ function validateSchedule(schedule:PublicSettings["weeklySchedule"]){
   for(const day of days){
     const periods=schedule[day]||[];
     if(periods.length>3)return `${labels[day]} tem mais de três períodos.`;
-    for(let index=0;index<periods.length;index++){
-      const period=periods[index];
-      if(!period.start||!period.end||period.start>=period.end)return `Em ${labels[day]}, o horário de abertura deve ser anterior ao fechamento.`;
-      if(index>0&&period.start<periods[index-1].end)return `Os períodos de ${labels[day]} estão sobrepostos ou fora de ordem.`;
-    }
+    const validation=periods.length?validatePeriods(periods,`Os períodos de ${labels[day]}`):"";
+    if(validation)return validation;
+  }
+  return "";
+}
+
+function validatePeriods(periods:Period[],label:string){
+  if(periods.length<1)return `${label} precisam ter pelo menos um período.`;
+  if(periods.length>3)return `${label} não podem ter mais de três períodos.`;
+  for(let index=0;index<periods.length;index++){
+    const period=periods[index];
+    if(!period.start||!period.end||period.start>=period.end)return `${label} precisam ter abertura anterior ao fechamento.`;
+    if(index>0&&period.start<periods[index-1].end)return `${label} estão sobrepostos ou fora de ordem.`;
   }
   return "";
 }

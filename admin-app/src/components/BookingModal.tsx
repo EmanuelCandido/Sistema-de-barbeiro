@@ -6,7 +6,7 @@ import { getCalendarDays, getServices, getSettings } from "../services/adminData
 import { changeBookingStatus, completeBooking, editBookingDetails, rescheduleBooking } from "../services/bookings";
 import type { Booking, BookingStatus, DateException, PaymentMethod, PublicSettings, Service } from "../types";
 import { RescheduleCalendar } from "./RescheduleCalendar";
-import { StatusBadge } from "./StatusBadge";
+import { isBookingOverdue, StatusBadge } from "./StatusBadge";
 import "./BookingModal.css";
 
 type ModalView="details"|"payment"|"edit"|"reschedule"|"cancel";
@@ -217,7 +217,7 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
   return <div className="modal-backdrop" onMouseDown={event=>event.target===event.currentTarget&&close()}>
     <section className="modal" role="dialog" aria-modal="true" aria-labelledby="detail-title">
       <button className="modal__close" onClick={close} aria-label="Fechar"><X size={24}/></button>
-      <p>DETALHES DO AGENDAMENTO</p><h2 id="detail-title">{booking.clientName}</h2><StatusBadge status={booking.status}/>
+      <p>DETALHES DO AGENDAMENTO</p><h2 id="detail-title">{booking.clientName}</h2><StatusBadge status={booking.status} overdue={isBookingOverdue(booking)}/>
       <dl>
         <div><dt>WhatsApp</dt><dd><a href={`https://wa.me/55${booking.clientPhone}`} target="_blank" rel="noreferrer">{booking.clientPhone}</a></dd></div>
         <div><dt>Serviço</dt><dd>{booking.serviceNameSnapshot} · {booking.durationMinutesSnapshot} min</dd></div>

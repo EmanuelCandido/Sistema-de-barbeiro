@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "wouter";
 import { CalendarClock, CircleAlert, Pencil, Scissors, ShieldCheck, Trash2 } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 import { Calendar } from "../components/Calendar";
-import { MAX_BOOKING_SERVICES, ServicePicker } from "../components/ServicePicker";
+import { ServicePicker } from "../components/ServicePicker";
+import { MAX_BOOKING_SERVICES } from "../lib/bookingLimits";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import {
   addDays,
@@ -35,7 +36,7 @@ type View = "overview" | "services" | "date" | "time" | "cancel" | "rescheduled"
 type EditMode = "schedule" | "services";
 
 export function ManageBookingPage() {
-  const { bookingId = "" } = useParams();
+  const { bookingId = "" } = useParams<{bookingId:string}>();
   const authState = useAnonymousAuth();
   const [booking, setBooking] = useState<CustomerBooking>();
   const [settings, setSettings] = useState<PublicSettings>();
@@ -260,12 +261,12 @@ export function ManageBookingPage() {
           {manageable && <div className="manage-actions">
             <button className="button button--danger" onClick={() => { setView("cancel"); setError(""); }}><Trash2 size={17}/>Cancelar agendamento</button>
           </div>}
-          <Link className="manage-back-link" to="/">Voltar ao início</Link>
+          <Link className="manage-back-link" href="/">Voltar ao início</Link>
         </div>
       </>}
 
       {view === "services" && <div className="step">
-        <div className="heading"><p>EDITAR AGENDAMENTO</p><h2>Escolha os serviços</h2><span>Adicione, remova ou troque até {MAX_BOOKING_SERVICES} serviços.</span></div>
+        <div className="heading"><p>EDITAR AGENDAMENTO</p><h2>Escolha os serviços</h2><span>Adicione, remova ou troque até dois serviços deste atendimento.</span></div>
         <ServicePicker services={services} selectedIds={selectedServiceIds} toggle={toggleService}/>
         <div className="actions">
           <button className="button button--ghost" onClick={() => setView("overview")}>Voltar</button>
@@ -333,12 +334,12 @@ function ResultState({ icon, eyebrow, title, text, booking }: { icon: React.Reac
     <span className="manage-result__icon" aria-hidden="true">{icon}</span>
     <div className="heading"><p>{eyebrow}</p><h2>{title}</h2><span>{text}</span></div>
     {booking && <BookingDetails booking={booking}/>}
-    <Link className="button button--primary" to="/">Voltar ao início</Link>
+    <Link className="button button--primary" href="/">Voltar ao início</Link>
   </div>;
 }
 
 function PageState({ title, text }: { title: string; text: string }) {
-  return <main className="shell"><section className="booking-card"><div className="empty"><span aria-hidden="true"><ShieldCheck size={28}/></span><h1>{title}</h1><p>{text}</p><Link className="button button--primary" to="/">Voltar ao início</Link></div></section></main>;
+  return <main className="shell"><section className="booking-card"><div className="empty"><span aria-hidden="true"><ShieldCheck size={28}/></span><h1>{title}</h1><p>{text}</p><Link className="button button--primary" href="/">Voltar ao início</Link></div></section></main>;
 }
 
 function InlineState({ title, text }: { title: string; text: string }) {

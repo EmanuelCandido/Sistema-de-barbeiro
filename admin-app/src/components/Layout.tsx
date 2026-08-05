@@ -1,6 +1,7 @@
 import { LogOut, Scissors, Settings } from "lucide-react";
 import { signOut } from "firebase/auth";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, useLocation } from "wouter";
+import type { ReactNode } from "react";
 import { useOwnerAuth } from "../hooks/useOwnerAuth";
 import { auth } from "../lib/firebase";
 
@@ -12,15 +13,15 @@ const links = [
   { to: "/horarios", label: "Horários", regularIcon: "/nav-icons/clock.svg", boldIcon: "/nav-icons/clock-bold.svg", regularWhite: false, boldWhite: true },
 ];
 
-export function Layout() {
+export function Layout({children}:{children:ReactNode}) {
   const { profile } = useOwnerAuth();
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="logo"><b><Scissors size={20} /></b><span>Barbearia<small>PAINEL DO PROPRIETÁRIO</small></span></div>
         <nav>
-          {links.map(({ to, label, ...icons }) => <NavLink key={to} to={to} end={to === "/"}><NavIcon {...icons} /><span>{label}</span></NavLink>)}
-          <NavLink to="/configuracoes"><Settings size={18} strokeWidth={1.9} /><span>Configurações</span></NavLink>
+          {links.map(({ to, label, ...icons }) => <AppNavLink key={to} href={to} exact={to === "/"}><NavIcon {...icons} /><span>{label}</span></AppNavLink>)}
+          <AppNavLink href="/configuracoes"><Settings size={18} strokeWidth={1.9} /><span>Configurações</span></AppNavLink>
         </nav>
         <div className="profile">
           <span>{profile?.name.slice(0, 1).toUpperCase()}</span>
@@ -28,12 +29,18 @@ export function Layout() {
           <button onClick={() => signOut(auth)} title="Sair" aria-label="Encerrar sessão"><LogOut size={18} /></button>
         </div>
       </aside>
-      <main className="content"><Outlet /></main>
+      <main className="content">{children}</main>
       <nav className="bottom-nav" aria-label="Navegação principal">
-        {links.map(({ to, label, ...icons }) => <NavLink key={to} to={to} end={to === "/"}><NavIcon {...icons} /><span>{label}</span></NavLink>)}
+        {links.map(({ to, label, ...icons }) => <AppNavLink key={to} href={to} exact={to === "/"}><NavIcon {...icons} /><span>{label}</span></AppNavLink>)}
       </nav>
     </div>
   );
+}
+
+function AppNavLink({href,exact=false,children}:{href:string;exact?:boolean;children:ReactNode}){
+  const[location]=useLocation();
+  const active=exact?location===href:location===href||location.startsWith(`${href}/`);
+  return <Link href={href} className={active?"active":undefined}>{children}</Link>;
 }
 
 function NavIcon({regularIcon,boldIcon,regularWhite,boldWhite}:{regularIcon:string;boldIcon:string;regularWhite:boolean;boldWhite:boolean}) {

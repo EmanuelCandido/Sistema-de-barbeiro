@@ -6,6 +6,7 @@
     "build": "npm run build --prefix client-app && npm run build --prefix admin-app",
     "dev:client:local": "firebase emulators:exec --project barbearia-local --only auth,firestore \"npm run seed --prefix firebase && npm run dev --prefix client-app\"",
     "migrate:summaries": "node firebase/scripts/migrate-financial-summaries.cjs",
+    "configure:auth-security": "node firebase/scripts/configure-auth-security.cjs barbearia-c9246",
     "test:rules": "firebase emulators:exec --project barbearia-rules-test --only firestore \"npm test --prefix firebase\"",
     "test": "npm run test:rules && npm run build"
   },

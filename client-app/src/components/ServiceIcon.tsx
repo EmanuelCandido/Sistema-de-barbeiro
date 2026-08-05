@@ -2,7 +2,7 @@ import type { Service } from "../types";
 
 export function ServiceIcon({service}:{service:Service}){
   if(service.iconKey==="none")return null;
-  if(service.iconKey)return <img className="service__icon-image" src={`/service-icons/${service.iconKey}.png`} alt=""/>;
+  if(service.iconKey)return <img className="service__icon-image" src={`/service-icons/${service.iconKey}.svg`} alt=""/>;
   const value=`${service.id} ${service.name}`.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
   const beard=value.includes("barba");
   const haircut=value.includes("corte");

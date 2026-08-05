@@ -541,8 +541,8 @@ a.active .nav-icon__bold {
 :root:not([data-theme="dark"]) .service-admin__identity > img,
 :root:not([data-theme="dark"]) .service-icon-picker img {
   border-color: #dedee3;
-  background: #f1f1f3;
-  filter: none;
+  background: #000;
+  filter: invert(1) grayscale(1);
 }
 
 :root:not([data-theme="dark"]) .login,

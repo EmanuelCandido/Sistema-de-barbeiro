@@ -1,0 +1,9 @@
+:root:not([data-theme="dark"]) .badge.badge--overdue {
+  background: #ffe08a;
+  color: #6f4700;
+}
+
+:root[data-theme="dark"] .badge.badge--overdue {
+  background: #6a4d08;
+  color: #ffe59a;
+}

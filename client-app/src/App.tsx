@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Redirect, Route, Switch } from "wouter";
 import { BookingPage } from "./pages/BookingPage";
 
 const ConfirmationPage = lazy(() =>
@@ -14,16 +14,14 @@ const UnavailablePage = lazy(() =>
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<div className="shell"><div className="skeleton skeleton--short" aria-label="Carregando" /></div>}>
-        <Routes>
-          <Route path="/" element={<BookingPage />} />
-          <Route path="/confirmacao" element={<ConfirmationPage />} />
-          <Route path="/agendamento/:bookingId" element={<ManageBookingPage />} />
-          <Route path="/indisponivel" element={<UnavailablePage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <Suspense fallback={<div className="shell"><div className="skeleton skeleton--short" aria-label="Carregando" /></div>}>
+      <Switch>
+        <Route path="/" component={BookingPage} />
+        <Route path="/confirmacao" component={ConfirmationPage} />
+        <Route path="/agendamento/:bookingId" component={ManageBookingPage} />
+        <Route path="/indisponivel" component={UnavailablePage} />
+        <Redirect to="/" replace />
+      </Switch>
+    </Suspense>
   );
 }

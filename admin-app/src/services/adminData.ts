@@ -22,6 +22,12 @@ export async function saveService(service:Partial<Service>&Pick<Service,"name"|"
   servicesCache=null;
 }
 export async function removeService(id:string){await deleteDoc(doc(db,"services",id));servicesCache=null}
+export async function updateServiceOrder(serviceIds:string[]){
+  const batch=writeBatch(db);
+  serviceIds.forEach((id,index)=>batch.update(doc(db,"services",id),{sortOrder:index+1,updatedAt:serverTimestamp()}));
+  await batch.commit();
+  servicesCache=null;
+}
 export async function getSettings(force=false){
   if(!force&&settingsCache)return settingsCache;
   if(!force&&settingsRequest)return settingsRequest;

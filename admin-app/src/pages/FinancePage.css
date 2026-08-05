@@ -23,8 +23,12 @@
   cursor: pointer;
 }
 
-.month-picker > span {
+:root .page-header .month-picker.month-picker > span {
+  display: block;
+  margin: 0;
   color: var(--ink);
+  font-size: 12px;
+  line-height: 1.25;
   text-transform: none;
   pointer-events: none;
 }
@@ -76,7 +80,36 @@
 }
 
 @media (max-width: 760px) {
+  .page-header .month-picker {
+    width: min(100%, 280px);
+    min-height: 56px;
+    margin-top: 16px;
+    padding: 0 18px;
+    gap: 20px;
+    border-radius: 14px;
+  }
+
+  :root .page-header .month-picker.month-picker > span {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: .01em;
+  }
+
+  .page-header .month-picker > img {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
   .finance-breakdown > .finance-row {
     grid-template-columns: 70px 1fr 85px;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-header .month-picker {
+    width: 100%;
   }
 }
