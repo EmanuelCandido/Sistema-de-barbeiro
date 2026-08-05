@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, CalendarClock, CircleAlert, Pencil, Scissors, ShieldCheck } from "lucide-react";
 import { addDays, buildAvailableTimes, dateKey, formatDateLong, getPeriods, minutesToTime, money, timeToMinutes } from "../lib/date";
@@ -31,7 +31,6 @@ export function BookingPage() {
   const [exception, setException] = useState<DateException | null>();
   const [loading, setLoading] = useState(true);
   const [dateLoading, setDateLoading] = useState(false);
-  const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarStatus, setCalendarStatus] = useState<Record<string,"available"|"full"|"closed">>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +43,7 @@ export function BookingPage() {
     occupied: Record<string, boolean>;
     exception: DateException | null | undefined;
   } | null>(null);
+  const dateRequestId = useRef(0);
 
   useEffect(() => {
     if (!authState.ready) return;
@@ -66,7 +66,7 @@ export function BookingPage() {
   useEffect(()=>{
     if(step!==2||!settings||!selectedDuration||!authState.ready)return;
     let active=true;
-    setCalendarLoading(true); setError("");
+    setError("");
     const firstKey=dateKey(dates[0]);
     const lastKey=dateKey(dates[dates.length-1]);
     getCalendarDays(firstKey,lastKey).then(days=>dates.map(date=>{
@@ -77,12 +77,12 @@ export function BookingPage() {
       const status: "available"|"full"|"closed"=!periods.length?"closed":buildAvailableTimes(date,settings,selectedDuration,availability.occupiedSlots,dayException).length?"available":"full";
       return[key,status] as const;
     })).then(entries=>{if(active)setCalendarStatus(Object.fromEntries(entries))})
-      .catch(()=>{if(active)setError("Não foi possível verificar as vagas do calendário. Tente novamente.")})
-      .finally(()=>{if(active)setCalendarLoading(false)});
+      .catch(()=>{if(active)setError("Não foi possível verificar as vagas do calendário. Tente novamente.")});
     return()=>{active=false};
   },[step,settings,selectedDuration,dates,authState.ready]);
 
   async function chooseDate(date: Date) {
+    const requestId = ++dateRequestId.current;
     setSelectedDate(date); setSelectedTime(""); setDateLoading(true); setError("");
     try {
       const key = dateKey(date);
@@ -91,10 +91,15 @@ export function BookingPage() {
         getAvailabilityForDate(key),
         cachedDay ? Promise.resolve(cachedDay.exception) : getExceptionForDate(key),
       ]);
+      if (requestId !== dateRequestId.current) return;
       updateCachedCalendarAvailability(key,availability);
       setOccupied(availability.occupiedSlots); setException(dayException); setStep(3);
-    } catch { setError("Não foi possível consultar os horários desta data."); }
-    finally { setDateLoading(false); }
+    } catch {
+      if (requestId === dateRequestId.current) setError("Não foi possível consultar os horários desta data.");
+    }
+    finally {
+      if (requestId === dateRequestId.current) setDateLoading(false);
+    }
   }
 
   function validateClient() {
@@ -218,7 +223,7 @@ export function BookingPage() {
           </>}
           {step === 2 && <>
             <div className="heading">{editing && <p>EDITAR AGENDAMENTO</p>}<h2>{editing ? "Editar data" : "Escolha o dia"}</h2><span>{editing ? "Escolha uma nova data disponível." : "Os dias com vaga estão disponíveis no calendário."}</span></div>
-            <Calendar dates={dates} selected={selectedDate} loading={dateLoading||calendarLoading} isClosed={closed} statusByDate={calendarStatus} onSelect={chooseDate} />
+            <Calendar dates={dates} selected={selectedDate} loading={dateLoading} isClosed={closed} statusByDate={calendarStatus} onSelect={chooseDate} />
             {!editing && <Footer back={() => setStep(1)} />}
           </>}
           {step === 3 && <>

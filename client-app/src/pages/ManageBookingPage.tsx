@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
 import { CalendarClock, CircleAlert, Pencil, Scissors, ShieldCheck, Trash2 } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
@@ -54,6 +54,7 @@ export function ManageBookingPage() {
   const [dateLoading, setDateLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const dateRequestId = useRef(0);
 
   useEffect(() => {
     if (!authState.ready) return;
@@ -126,6 +127,7 @@ export function ManageBookingPage() {
 
   async function chooseDate(date: Date) {
     if (!booking) return;
+    const requestId = ++dateRequestId.current;
     setSelectedDate(date);
     setSelectedTime("");
     setDateLoading(true);
@@ -137,6 +139,7 @@ export function ManageBookingPage() {
         getAvailabilityForDate(key),
         cached ? Promise.resolve(cached.exception) : getExceptionForDate(key),
       ]);
+      if (requestId !== dateRequestId.current) return;
       const availableSlots = { ...availability.occupiedSlots };
       if (key === booking.dateKey) booking.occupiedSlotKeys.forEach((slot) => { delete availableSlots[slot]; });
       updateCachedCalendarAvailability(key, availability);
@@ -144,9 +147,9 @@ export function ManageBookingPage() {
       setException(dayException);
       setView("time");
     } catch {
-      setError("Não foi possível consultar os horários desta data.");
+      if (requestId === dateRequestId.current) setError("Não foi possível consultar os horários desta data.");
     } finally {
-      setDateLoading(false);
+      if (requestId === dateRequestId.current) setDateLoading(false);
     }
   }
 
@@ -276,7 +279,7 @@ export function ManageBookingPage() {
 
       {view === "date" && <div className="step">
         <div className="heading"><p>{editMode === "services" ? "EDITAR SERVIÇOS" : "REAGENDAR"}</p><h2>Escolha o dia</h2><span>Seu agendamento atual só muda depois da confirmação.</span></div>
-        <Calendar dates={dates} selected={selectedDate} loading={calendarLoading || dateLoading} isClosed={(date) => getPeriods(date, settings, null).length === 0} statusByDate={calendarStatus} onSelect={chooseDate}/>
+        <Calendar dates={dates} selected={selectedDate} loading={dateLoading} isClosed={(date) => getPeriods(date, settings, null).length === 0} statusByDate={calendarStatus} onSelect={chooseDate}/>
         <div className="actions"><button className="button button--ghost" onClick={() => setView(editMode === "services" ? "services" : "overview")}>Voltar</button></div>
       </div>}
 
