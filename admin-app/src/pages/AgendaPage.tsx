@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { BookingModal } from "../components/BookingModal";
 import { isBookingOverdue, StatusBadge } from "../components/StatusBadge";
 import { addDays, dateKey, dateLong, money, startOfWeek } from "../lib/format";
@@ -19,6 +19,7 @@ export default function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter,setStatusFilter]=useState<StatusFilter>("all");
   const [now,setNow]=useState(()=>Date.now());
+  const statusFilterCard=useRef<HTMLDetailsElement>(null);
 
   useEffect(()=>{
     const timer=window.setInterval(()=>setNow(Date.now()),30_000);
@@ -53,6 +54,18 @@ export default function AgendaPage() {
     {key:"completed",label:"Concluídos"},
     {key:"cancelled",label:"Cancelados"},
   ];
+  const statusCounts=useMemo(()=>({
+    all:bookings.length,
+    pending:bookings.filter(booking=>booking.status==="pending"||booking.status==="confirmed").length,
+    completed:bookings.filter(booking=>booking.status==="completed").length,
+    cancelled:bookings.filter(booking=>booking.status==="cancelled").length,
+  }),[bookings]);
+  const selectedStatusOption=statusOptions.find(option=>option.key===statusFilter)!;
+
+  function selectStatusFilter(filter:StatusFilter){
+    setStatusFilter(filter);
+    statusFilterCard.current?.removeAttribute("open");
+  }
 
   return (
     <>
@@ -66,9 +79,20 @@ export default function AgendaPage() {
         <button onClick={() => setWeek(startOfWeek())}><span>Hoje</span></button>
         <button onClick={() => setWeek(addDays(week, 7))}><span>Próxima Semana</span><ChevronRight size={19} strokeWidth={2}/></button>
       </div>
-      <div className="agenda-status-filter" role="group" aria-label="Filtrar agenda por status">
-        {statusOptions.map(option=><button type="button" key={option.key} className={statusFilter===option.key?"is-selected":""} aria-pressed={statusFilter===option.key} onClick={()=>setStatusFilter(option.key)}>{option.label}</button>)}
-      </div>
+      <details className="agenda-filter-card" ref={statusFilterCard}>
+        <summary aria-label={`Filtro atual: ${selectedStatusOption.label}`}>
+          <span className="agenda-filter-card__icon" aria-hidden="true" />
+          <span className="agenda-filter-card__copy"><small>FILTRAR STATUS</small><strong>{selectedStatusOption.label}</strong></span>
+          <span className="agenda-filter-card__count">{statusCounts[statusFilter]}</span>
+          <ChevronDown className="agenda-filter-card__chevron" size={18} aria-hidden="true" />
+        </summary>
+        <div className="agenda-filter-card__options" role="group" aria-label="Filtrar agenda por status">
+          {statusOptions.map(option=><button type="button" key={option.key} className={statusFilter===option.key?"is-selected":""} aria-pressed={statusFilter===option.key} onClick={()=>selectStatusFilter(option.key)}>
+            <span><strong>{option.label}</strong><small>{statusCounts[option.key]} {statusCounts[option.key]===1?"agendamento":"agendamentos"}</small></span>
+            {statusFilter===option.key&&<Check size={17} strokeWidth={2.5} aria-hidden="true" />}
+          </button>)}
+        </div>
+      </details>
       {loading ? (
         <div className="loading-card">Carregando agenda…</div>
       ) : (

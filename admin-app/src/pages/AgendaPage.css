@@ -53,40 +53,129 @@
   grid-column: 3;
 }
 
-.agenda-status-filter {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+.agenda-filter-card {
+  position: relative;
+  z-index: 8;
+  width: min(100%, 380px);
   margin: 18px 0;
+  color: var(--ink);
 }
 
-.agenda-status-filter button {
-  min-height: 40px;
-  padding: 0 12px;
+.agenda-filter-card summary {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 11px 16px 11px 12px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 16px;
   background: var(--paper);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  box-shadow: 0 8px 24px rgba(31, 41, 37, .07);
+  list-style: none;
   cursor: pointer;
 }
 
-.agenda-status-filter button.is-selected {
-  border-color: #646cff;
-  background: rgba(100, 108, 255, .12);
-  color: #5961e8;
-  box-shadow: inset 0 0 0 1px #646cff;
+.agenda-filter-card summary::-webkit-details-marker { display: none; }
+
+.agenda-filter-card summary:hover,
+.agenda-filter-card[open] summary {
+  border-color: #6c73ee;
+  box-shadow: 0 10px 28px rgba(70, 76, 180, .14);
 }
 
-:root[data-theme="dark"] .agenda-status-filter button {
-  background: #111512;
+.agenda-filter-card__icon {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #6670ee;
+  mask: url('/icons/filter-edit.svg') center/25px 25px no-repeat;
+  -webkit-mask: url('/icons/filter-edit.svg') center/25px 25px no-repeat;
 }
 
-:root[data-theme="dark"] .agenda-status-filter button.is-selected {
-  border-color: #7d84ff;
-  background: rgba(100, 108, 255, .18);
+.agenda-filter-card__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.agenda-filter-card__copy small {
+  color: #6670ee;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+.agenda-filter-card__copy strong { font-size: 14px; }
+
+.agenda-filter-card__count {
+  display: grid;
+  min-width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(102, 112, 238, .12);
+  color: #5961d9;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.agenda-filter-card__chevron {
+  color: var(--muted);
+  transition: transform .18s ease;
+}
+
+.agenda-filter-card[open] .agenda-filter-card__chevron { transform: rotate(180deg); }
+
+.agenda-filter-card__options {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 18px 45px rgba(18, 22, 20, .18);
+}
+
+.agenda-filter-card__options button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.agenda-filter-card__options button:hover { background: rgba(102, 112, 238, .08); }
+
+.agenda-filter-card__options button.is-selected {
+  background: rgba(102, 112, 238, .13);
+  color: #5961d9;
+}
+
+.agenda-filter-card__options button>span { display: grid; gap: 3px; }
+.agenda-filter-card__options button strong { font-size: 12px; }
+.agenda-filter-card__options button small { color: var(--muted); font-size: 10px; }
+
+:root[data-theme="dark"] .agenda-filter-card summary,
+:root[data-theme="dark"] .agenda-filter-card__options { background: #111512; }
+
+:root[data-theme="dark"] .agenda-filter-card__count,
+:root[data-theme="dark"] .agenda-filter-card__options button.is-selected {
   color: #c3c7ff;
+  background: rgba(102, 112, 238, .2);
 }
 
 @media (max-width: 430px) {
@@ -108,14 +197,6 @@
     height: 12px;
   }
 
-  .agenda-status-filter {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-    margin: 14px 0;
-  }
-
-  .agenda-status-filter button {
-    min-height: 38px;
-    font-size: 11px;
-  }
+  .agenda-filter-card { margin: 14px 0; }
+  .agenda-filter-card summary { min-height: 66px; }
 }
