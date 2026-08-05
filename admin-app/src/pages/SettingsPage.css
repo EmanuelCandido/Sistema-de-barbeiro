@@ -59,6 +59,7 @@
   place-items: center;
   background: transparent;
   cursor: pointer;
+  transform: translateY(-50%);
 }
 
 .password-visibility:hover {
