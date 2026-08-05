@@ -213,10 +213,12 @@ service cloud.firestore {
     function validServiceIdList(serviceIds) {
       return serviceIds is list &&
         serviceIds.size() >= 1 &&
-        serviceIds.size() <= 2 &&
+        serviceIds.size() <= 4 &&
         serviceIds.toSet().size() == serviceIds.size() &&
         validServiceId(serviceIds[0]) &&
-        (serviceIds.size() < 2 || validServiceId(serviceIds[1]));
+        (serviceIds.size() < 2 || validServiceId(serviceIds[1])) &&
+        (serviceIds.size() < 3 || validServiceId(serviceIds[2])) &&
+        (serviceIds.size() < 4 || validServiceId(serviceIds[3]));
     }
     function validBookingShape(data) {
       return data.keys().hasOnly(["dateKey", "startTime", "endTime", "startAt", "endAt", "expiresAt", "occupiedSlotKeys", "serviceId", "serviceIds", "serviceNameSnapshot", "durationMinutesSnapshot", "priceCentsSnapshot", "clientName", "clientPhone", "clientNote", "status", "paymentMethod", "lastCustomerMutation", "createdByUid", "createdAt", "updatedAt"]) &&
@@ -321,8 +323,7 @@ service cloud.firestore {
       let settings = get(settingsPath()).data;
       let startMinutes = timeMinutes(data.startTime);
       let endMinutes = timeMinutes(data.endTime);
-      return exists(settingsPath()) &&
-        validLocalDateTime(data, startMinutes) &&
+      return validLocalDateTime(data, startMinutes) &&
         data.endAt == data.startAt + duration.value(data.durationMinutesSnapshot, 'm') &&
         endMinutes == startMinutes + data.durationMinutesSnapshot &&
         data.startAt >= request.time + duration.value(settings.minimumNoticeMinutes, 'm') &&
@@ -350,10 +351,43 @@ service cloud.firestore {
         data.durationMinutesSnapshot == first.durationMinutes + second.durationMinutes &&
         data.priceCentsSnapshot == first.priceCents + second.priceCents;
     }
+    function threeServiceSnapshotIsCurrent(data) {
+      let first = get(servicePath(data.serviceIds[0])).data;
+      let second = get(servicePath(data.serviceIds[1])).data;
+      let third = get(servicePath(data.serviceIds[2])).data;
+      return data.serviceIds.toSet().size() == 3 &&
+        first.active == true &&
+        second.active == true &&
+        third.active == true &&
+        data.serviceId == data.serviceIds[0] + "+" + data.serviceIds[1] + "+" + data.serviceIds[2] &&
+        data.serviceNameSnapshot == first.name + " + " + second.name + " + " + third.name &&
+        data.durationMinutesSnapshot == first.durationMinutes + second.durationMinutes + third.durationMinutes &&
+        data.priceCentsSnapshot == first.priceCents + second.priceCents + third.priceCents;
+    }
+    function fourServiceSnapshotIsCurrent(data) {
+      let first = get(servicePath(data.serviceIds[0])).data;
+      let second = get(servicePath(data.serviceIds[1])).data;
+      let third = get(servicePath(data.serviceIds[2])).data;
+      let fourth = get(servicePath(data.serviceIds[3])).data;
+      return data.serviceIds.toSet().size() == 4 &&
+        first.active == true &&
+        second.active == true &&
+        third.active == true &&
+        fourth.active == true &&
+        data.serviceId == data.serviceIds[0] + "+" + data.serviceIds[1] + "+" + data.serviceIds[2] + "+" + data.serviceIds[3] &&
+        data.serviceNameSnapshot == first.name + " + " + second.name + " + " + third.name + " + " + fourth.name &&
+        data.durationMinutesSnapshot == first.durationMinutes + second.durationMinutes + third.durationMinutes + fourth.durationMinutes &&
+        data.priceCentsSnapshot == first.priceCents + second.priceCents + third.priceCents + fourth.priceCents;
+    }
     function serviceSnapshotIsCurrent(data) {
-      return data.serviceIds.size() == 1
+      return data.serviceIds is list &&
+        (data.serviceIds.size() == 1
         ? oneServiceSnapshotIsCurrent(data)
-        : data.serviceIds.size() == 2 && twoServiceSnapshotIsCurrent(data);
+        : data.serviceIds.size() == 2
+          ? twoServiceSnapshotIsCurrent(data)
+          : data.serviceIds.size() == 3
+            ? threeServiceSnapshotIsCurrent(data)
+            : data.serviceIds.size() == 4 && fourServiceSnapshotIsCurrent(data));
     }
     function validBookingLock(data) {
       return data.keys().hasOnly(["bookingId", "createdAt", "updatedAt"]) &&
@@ -364,8 +398,7 @@ service cloud.firestore {
     }
     function lockMatchesBooking(uid, bookingId) {
       let lock = getAfter(bookingLockPath(uid)).data;
-      return existsAfter(bookingLockPath(uid)) &&
-        lock.bookingId == bookingId;
+      return lock.bookingId == bookingId;
     }
     function lockReleasedForBooking(uid, bookingId) {
       return exists(bookingLockPath(uid)) &&
@@ -399,7 +432,6 @@ service cloud.firestore {
       return request.auth.uid == uid &&
         validBookingLock(lock) &&
         lock.updatedAt == request.time &&
-        existsAfter(bookingPath(lock.bookingId)) &&
         booking.createdByUid == uid &&
         booking.status == "pending" &&
         (
@@ -431,8 +463,7 @@ service cloud.firestore {
     }
     function validAvailabilityMutationBase(dateKey, bookingId, mutationType) {
       let after = getAfter(availabilityPath(dateKey)).data;
-      return existsAfter(availabilityPath(dateKey)) &&
-        after.lastMutationId == bookingId &&
+      return after.lastMutationId == bookingId &&
         after.lastMutationType == mutationType &&
         after.updatedAt == request.time;
     }
@@ -460,8 +491,7 @@ service cloud.firestore {
     function validSameDateAvailability(dateKey, oldSlots, newSlots, bookingId) {
       let beforeSlots = availabilitySlots(get(availabilityPath(dateKey)).data);
       let afterSlots = getAfter(availabilityPath(dateKey)).data.occupiedSlotKeys;
-      return exists(availabilityPath(dateKey)) &&
-        validAvailabilityMutationBase(dateKey, bookingId, "reschedule-same") &&
+      return validAvailabilityMutationBase(dateKey, bookingId, "reschedule-same") &&
         validSameDateSwap(beforeSlots, afterSlots, oldSlots, newSlots);
     }
     function validCrossDateAvailability(before, after, bookingId) {
@@ -604,8 +634,7 @@ service cloud.firestore {
       let before = get(bookingPath(bookingId)).data;
       let after = getAfter(bookingPath(bookingId)).data;
       let settings = get(settingsPath()).data;
-      return existsAfter(bookingPath(bookingId)) &&
-        after.createdByUid == request.auth.uid &&
+      return after.createdByUid == request.auth.uid &&
         after.updatedAt == request.time &&
         after.lastCustomerMutation == "reschedule" &&
         after.status == "pending" &&

@@ -212,7 +212,7 @@ export function BookingPage() {
         {editing ? <EditToolbar cancel={cancelEdit} /> : <Progress step={step} />}
         <div className="step" key={step}>
           {step === 1 && <>
-            <div className="heading">{editing && <p>EDITAR AGENDAMENTO</p>}<h2>{editing ? "Editar serviços" : "Escolha os serviços"}</h2><span>{editing ? "Adicione, remova ou troque até dois serviços deste atendimento." : "Selecione até dois serviços para o mesmo horário."}</span></div>
+            <div className="heading">{editing && <p>EDITAR AGENDAMENTO</p>}<h2>{editing ? "Editar serviços" : "Escolha os serviços"}</h2><span>{editing ? `Adicione, remova ou troque até ${MAX_BOOKING_SERVICES} serviços deste atendimento.` : `Selecione até ${MAX_BOOKING_SERVICES} serviços para o mesmo horário.`}</span></div>
             <ServicePicker services={services} selectedIds={selectedServices.map((service) => service.id)} toggle={toggleService}/>
             <Footer next={editing ? saveServiceEdit : () => setStep(2)} disabled={!selectedServices.length} nextLabel={editing ? "Continuar" : "Continuar"} />
           </>}

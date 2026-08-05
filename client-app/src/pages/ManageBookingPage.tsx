@@ -266,7 +266,7 @@ export function ManageBookingPage() {
       </>}
 
       {view === "services" && <div className="step">
-        <div className="heading"><p>EDITAR AGENDAMENTO</p><h2>Escolha os serviços</h2><span>Adicione, remova ou troque até dois serviços deste atendimento.</span></div>
+        <div className="heading"><p>EDITAR AGENDAMENTO</p><h2>Escolha os serviços</h2><span>Adicione, remova ou troque até {MAX_BOOKING_SERVICES} serviços deste atendimento.</span></div>
         <ServicePicker services={services} selectedIds={selectedServiceIds} toggle={toggleService}/>
         <div className="actions">
           <button className="button button--ghost" onClick={() => setView("overview")}>Voltar</button>

@@ -57,6 +57,22 @@ const finishService = {
   priceCents: 1500,
   sortOrder: 4,
 };
+const spaService = {
+  ...service,
+  name: "Hidratação",
+  description: "Tratamento capilar",
+  durationMinutes: 30,
+  priceCents: 1000,
+  sortOrder: 5,
+};
+const eyebrowService = {
+  ...service,
+  name: "Sobrancelha",
+  description: "Acabamento da sobrancelha",
+  durationMinutes: 30,
+  priceCents: 800,
+  sortOrder: 6,
+};
 const dailyPeriods = [{ start: "08:00", end: "18:00" }];
 const settings = {
   businessName: "Barbearia Exemplo",
@@ -105,6 +121,8 @@ beforeEach(async () => {
     await setDoc(doc(db, "services", "inactive"), inactiveService);
     await setDoc(doc(db, "services", "beard"), beardService);
     await setDoc(doc(db, "services", "finish"), finishService);
+    await setDoc(doc(db, "services", "spa"), spaService);
+    await setDoc(doc(db, "services", "eyebrow"), eyebrowService);
     await setDoc(doc(db, "settings", "public"), settings);
     await setDoc(doc(db, "exceptions", secondFutureKey), {
       closed: false,
@@ -315,7 +333,7 @@ describe("leitura pública mínima", () => {
       collection(db, "services"),
       where("active", "==", true),
     )));
-    assert.equal(result.size, 3);
+    assert.equal(result.size, 5);
   });
 
   it("cliente consulta disponibilidade e exceções por intervalo", async () => {
@@ -374,16 +392,33 @@ describe("criação atômica no plano gratuito", () => {
     assert.equal(saved.priceCentsSnapshot, 5500);
   });
 
-  it("limita a seleção pública a dois serviços", async () => {
+  it("cria reserva com quatro serviços usando duração e preço oficiais", async () => {
+    const context = env.authenticatedContext("client");
+    await assertSucceeds(atomicCreate(context, bookingId, booking("client", {
+      endTime: "11:30",
+      endAt: at(futureKey, "11:30"),
+      occupiedSlotKeys: ["09:00", "09:30", "10:00", "10:30", "11:00"],
+      serviceId: "active+beard+finish+spa",
+      serviceIds: ["active", "beard", "finish", "spa"],
+      serviceNameSnapshot: "Corte tradicional + Barba + Acabamento + Hidratação",
+      durationMinutesSnapshot: 150,
+      priceCentsSnapshot: 8000,
+    })));
+    const saved = (await getDoc(doc(context.firestore(), "bookings", bookingId))).data();
+    assert.deepEqual(saved.serviceIds, ["active", "beard", "finish", "spa"]);
+    assert.equal(saved.priceCentsSnapshot, 8000);
+  });
+
+  it("bloqueia a seleção pública acima de quatro serviços", async () => {
     await assertFails(atomicCreate(env.authenticatedContext("client"), bookingId, booking("client", {
-      endTime: "11:00",
-      endAt: at(futureKey, "11:00"),
-      occupiedSlotKeys: ["09:00", "09:30", "10:00", "10:30"],
-      serviceId: "active+beard+finish",
-      serviceIds: ["active", "beard", "finish"],
-      serviceNameSnapshot: "Corte tradicional + Barba + Acabamento",
-      durationMinutesSnapshot: 120,
-      priceCentsSnapshot: 7000,
+      endTime: "12:00",
+      endAt: at(futureKey, "12:00"),
+      occupiedSlotKeys: ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"],
+      serviceId: "active+beard+finish+spa+eyebrow",
+      serviceIds: ["active", "beard", "finish", "spa", "eyebrow"],
+      serviceNameSnapshot: "Corte tradicional + Barba + Acabamento + Hidratação + Sobrancelha",
+      durationMinutesSnapshot: 180,
+      priceCentsSnapshot: 8800,
     })));
   });
 
@@ -601,6 +636,28 @@ describe("reagendamento protegido", () => {
     );
   });
 
+  it("altera o agendamento para quatro serviços com valores oficiais", async () => {
+    await seedBooking();
+    const context = env.authenticatedContext("client");
+    await assertSucceeds(atomicServiceChange(context, {
+      serviceId: "active+beard+finish+spa",
+      serviceIds: ["active", "beard", "finish", "spa"],
+      serviceNameSnapshot: "Corte tradicional + Barba + Acabamento + Hidratação",
+      durationMinutesSnapshot: 150,
+      priceCentsSnapshot: 8000,
+      endTime: "11:30",
+      endAt: at(futureKey, "11:30"),
+      occupiedSlotKeys: ["09:00", "09:30", "10:00", "10:30", "11:00"],
+    }));
+    const saved = (await getDoc(doc(context.firestore(), "bookings", bookingId))).data();
+    assert.deepEqual(saved.serviceIds, ["active", "beard", "finish", "spa"]);
+    assert.equal(saved.durationMinutesSnapshot, 150);
+    assert.deepEqual(
+      (await getDoc(doc(context.firestore(), "publicAvailability", futureKey))).data().occupiedSlotKeys,
+      ["09:00", "09:30", "10:00", "10:30", "11:00"],
+    );
+  });
+
   it("altera serviços e data na mesma transação protegida", async () => {
     await seedBooking();
     await env.withSecurityRulesDisabled(async (context) => {
@@ -660,6 +717,16 @@ describe("reagendamento protegido", () => {
       endTime: "11:00",
       endAt: at(futureKey, "11:00"),
       occupiedSlotKeys: ["09:00", "09:30", "10:00", "10:30"],
+    }));
+    await assertFails(atomicServiceChange(context, {
+      serviceId: "active+beard+finish+finish",
+      serviceIds: ["active", "beard", "finish", "finish"],
+      serviceNameSnapshot: "Corte tradicional + Barba + Acabamento + Acabamento",
+      durationMinutesSnapshot: 150,
+      priceCentsSnapshot: 8500,
+      endTime: "11:30",
+      endAt: at(futureKey, "11:30"),
+      occupiedSlotKeys: ["09:00", "09:30", "10:00", "10:30", "11:00"],
     }));
     await assertFails(atomicServiceChange(context, {
       serviceId: "active+inactive",
