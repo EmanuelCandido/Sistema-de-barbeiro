@@ -58,17 +58,22 @@ service cloud.firestore {
         (periods.size() < 2 || periods[0].end <= periods[1].start) &&
         (periods.size() < 3 || periods[1].end <= periods[2].start);
     }
+    // Only owners can write settings. Keeping the per-day check bounded here avoids
+    // Firestore's 1,000-expression limit; the owner app validates every period.
+    function validSchedulePeriodList(periods) {
+      return periods is list && periods.size() <= 3;
+    }
     function validWeeklySchedule(schedule) {
       return schedule is map &&
         schedule.keys().hasOnly(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]) &&
         schedule.keys().hasAll(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]) &&
-        validPeriodList(schedule.sunday) &&
-        validPeriodList(schedule.monday) &&
-        validPeriodList(schedule.tuesday) &&
-        validPeriodList(schedule.wednesday) &&
-        validPeriodList(schedule.thursday) &&
-        validPeriodList(schedule.friday) &&
-        validPeriodList(schedule.saturday);
+        validSchedulePeriodList(schedule.sunday) &&
+        validSchedulePeriodList(schedule.monday) &&
+        validSchedulePeriodList(schedule.tuesday) &&
+        validSchedulePeriodList(schedule.wednesday) &&
+        validSchedulePeriodList(schedule.thursday) &&
+        validSchedulePeriodList(schedule.friday) &&
+        validSchedulePeriodList(schedule.saturday);
     }
     function validSettings(data) {
       return data.keys().hasOnly(["businessName", "publicPhone", "timezone", "slotIntervalMinutes", "minimumNoticeMinutes", "bookingAdvanceDays", "weeklySchedule", "updatedAt"]) &&

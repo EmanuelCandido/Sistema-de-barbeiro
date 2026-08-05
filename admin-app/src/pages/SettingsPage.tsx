@@ -10,6 +10,7 @@ import { getSettings, saveSettings } from "../services/adminData";
 import type { PublicSettings } from "../types";
 import { Header } from "./DashboardPage";
 import { MIN_PASSWORD_LENGTH, passwordPolicyError } from "../lib/passwordPolicy";
+import { adminMutationError } from "../lib/adminError";
 import "./SettingsPage.css";
 
 type PasswordFields = {
@@ -28,6 +29,8 @@ export default function SettingsPage() {
   const { user } = useOwnerAuth();
   const [settings, setSettings] = useState<PublicSettings>();
   const [saved, setSaved] = useState(false);
+  const [settingsError, setSettingsError] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
   const [passwords, setPasswords] = useState<PasswordFields>(emptyPasswordFields);
   const [passwordError, setPasswordError] = useState("");
   const [passwordChanged, setPasswordChanged] = useState(false);
@@ -43,8 +46,18 @@ export default function SettingsPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    await saveSettings(settings!);
-    setSaved(true);
+    setSavingSettings(true);
+    setSaved(false);
+    setSettingsError("");
+    try {
+      await saveSettings(settings!);
+      setSettings(await getSettings());
+      setSaved(true);
+    } catch (reason) {
+      setSettingsError(adminMutationError(reason,"Não foi possível salvar as configurações."));
+    } finally {
+      setSavingSettings(false);
+    }
   }
 
   function setPasswordField(field: keyof PasswordFields, value: string) {
@@ -127,7 +140,8 @@ export default function SettingsPage() {
             <label>Limite futuro (dias)<input type="number" min="1" max="180" value={settings.bookingAdvanceDays} onChange={event => setSettings({ ...settings, bookingAdvanceDays:Number(event.target.value) })} /></label>
           </div>
           {saved && <p className="success-message" role="status">Configurações salvas.</p>}
-          <button className="primary">Salvar configurações</button>
+          {settingsError && <p className="form-error" role="alert">{settingsError}</p>}
+          <button className="primary" disabled={savingSettings}>{savingSettings?"Salvando…":"Salvar configurações"}</button>
         </form>
 
         <form className="panel settings-form" onSubmit={changePassword}>

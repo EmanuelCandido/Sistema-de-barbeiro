@@ -3,6 +3,7 @@ import { GripVertical } from "lucide-react";
 import { Header } from "./DashboardPage";
 import { getServices, removeService, saveService, updateServiceOrder } from "../services/adminData";
 import { money } from "../lib/format";
+import { adminMutationError } from "../lib/adminError";
 import type { Service, ServiceIconKey } from "../types";
 import "./ServicesPage.css";
 
@@ -90,8 +91,8 @@ export default function ServicesPage(){
       await saveService({...editing,priceCents:reais*100});
       closeEditor();
       await load();
-    }catch{
-      setFormError("Não foi possível salvar o serviço. Tente novamente.");
+    }catch(reason){
+      setFormError(adminMutationError(reason,"Não foi possível salvar o serviço."));
     }finally{
       setSaving(false);
     }

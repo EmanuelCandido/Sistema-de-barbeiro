@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { browserLocalPersistence, connectAuthEmulator, getAuth, setPersistence } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 
@@ -28,7 +28,7 @@ export const authPersistenceReady = setPersistence(auth, browserLocalPersistence
 if (firebaseConfigured && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN === "true") window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 if (firebaseConfigured && import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY) {
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY),
+    provider: new ReCaptchaEnterpriseProvider(import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY),
     isTokenAutoRefreshEnabled: true,
   });
 }

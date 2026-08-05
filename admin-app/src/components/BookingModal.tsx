@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Banknote, ChevronDown, ChevronRight, CreditCard, QrCode, X, type LucideIcon } from "lucide-react";
 import { buildAvailableTimes, getPeriods } from "../lib/availability";
 import { addDays, dateKey, dateLong, money } from "../lib/format";
+import { adminMutationError } from "../lib/adminError";
 import { getCalendarDays, getServices, getSettings } from "../services/adminData";
 import { changeBookingStatus, completeBooking, editBookingDetails, rescheduleBooking } from "../services/bookings";
 import type { Booking, BookingStatus, DateException, PaymentMethod, PublicSettings, Service } from "../types";
@@ -104,7 +105,7 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
   async function status(value:BookingStatus,selectedPayment?:PaymentMethod){
     setBusy(true);setError("");
     try{await changeBookingStatus(booking,value,selectedPayment);await refresh()}
-    catch(reason){setError(reason instanceof Error?reason.message:"Erro ao atualizar o atendimento.")}
+    catch(reason){setError(adminMutationError(reason,"Erro ao atualizar o atendimento."))}
     finally{setBusy(false)}
   }
 
@@ -117,7 +118,7 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
     if(!selectedServices.length){setError("Selecione pelo menos um serviço.");return}
     setBusy(true);setError("");
     try{await editBookingDetails(booking,name,digits,note,selectedServices,interval);await refresh()}
-    catch(reason){setError(reason instanceof Error?reason.message:"Não foi possível editar o agendamento.")}
+    catch(reason){setError(adminMutationError(reason,"Não foi possível editar o agendamento."))}
     finally{setBusy(false)}
   }
 
@@ -125,7 +126,7 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
     if(!selectedServices.length){setError("Selecione pelo menos um serviço realizado.");return}
     setBusy(true);setError("");
     try{await completeBooking(booking,payment,selectedServices,interval);await refresh()}
-    catch(reason){setError(reason instanceof Error?reason.message:"Não foi possível concluir o atendimento.")}
+    catch(reason){setError(adminMutationError(reason,"Não foi possível concluir o atendimento."))}
     finally{setBusy(false)}
   }
 
@@ -145,7 +146,7 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
     const slots=Array.from({length:count},(_,index)=>toTime(startMinutes+index*interval));
     setBusy(true);
     try{await rescheduleBooking(booking,newDate,newStart,toTime(endMinutes),slots,selectedServices);await refresh()}
-    catch(reason){setError(reason instanceof Error?reason.message:"Não foi possível reagendar.")}
+    catch(reason){setError(adminMutationError(reason,"Não foi possível reagendar."))}
     finally{setBusy(false)}
   }
 

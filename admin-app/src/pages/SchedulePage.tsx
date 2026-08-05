@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Header } from "./DashboardPage";
 import { getExceptions, getSettings, removeException, saveException, saveSettings } from "../services/adminData";
+import { adminMutationError } from "../lib/adminError";
 import type { DateException, Period, PublicSettings } from "../types";
 import "./SchedulePage.css";
 
@@ -63,7 +64,7 @@ export default function SchedulePage() {
       setTimeout(()=>setSaved(false),2500);
     }catch(reason){
       console.error("Falha ao salvar horários",reason);
-      setSaveError("Não foi possível salvar os horários. Verifique sua conexão e tente novamente.");
+      setSaveError(adminMutationError(reason,"Não foi possível salvar os horários."));
     }finally{setSaving(false);}
   }
   async function addException() {
@@ -77,13 +78,13 @@ export default function SchedulePage() {
       setTimeout(()=>setExceptionSaved(false),2500);
     }catch(reason){
       console.error("Falha ao salvar exceção",reason);
-      setExceptionError("Não foi possível salvar a exceção. Revise os horários e tente novamente.");
+      setExceptionError(adminMutationError(reason,"Não foi possível salvar a exceção."));
     }finally{setExceptionSaving(false);}
   }
   async function deleteException(key:string) {
     setExceptionError("");setExceptionSaved(false);
     try{await removeException(key);setExceptions(await getExceptions());}
-    catch(reason){console.error("Falha ao remover exceção",reason);setExceptionError("Não foi possível remover a exceção. Tente novamente.");}
+    catch(reason){console.error("Falha ao remover exceção",reason);setExceptionError(adminMutationError(reason,"Não foi possível remover a exceção."));}
   }
 
   return <>
@@ -139,11 +140,12 @@ function validateSchedule(schedule:PublicSettings["weeklySchedule"]){
 }
 
 function validatePeriods(periods:Period[],label:string){
+  const timePattern=/^([01]\d|2[0-3]):[0-5]\d$/;
   if(periods.length<1)return `${label} precisam ter pelo menos um período.`;
   if(periods.length>3)return `${label} não podem ter mais de três períodos.`;
   for(let index=0;index<periods.length;index++){
     const period=periods[index];
-    if(!period.start||!period.end||period.start>=period.end)return `${label} precisam ter abertura anterior ao fechamento.`;
+    if(!timePattern.test(period.start)||!timePattern.test(period.end)||period.start>=period.end)return `${label} precisam ter horários válidos e abertura anterior ao fechamento.`;
     if(index>0&&period.start<periods[index-1].end)return `${label} estão sobrepostos ou fora de ordem.`;
   }
   return "";

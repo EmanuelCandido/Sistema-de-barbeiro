@@ -13,6 +13,7 @@ import {
   documentId,
   getDoc,
   getDocs,
+  increment,
   query,
   serverTimestamp,
   setDoc,
@@ -798,6 +799,157 @@ describe("papéis administrativos", () => {
       ],
       updatedAt: serverTimestamp(),
     }));
+  });
+});
+
+describe("fluxos administrativos completos", () => {
+  it("owner salva as configuracoes e os horarios completos", async () => {
+    const db = env.authenticatedContext("owner").firestore();
+    await assertSucceeds(setDoc(doc(db, "settings", "public"), {
+      ...settings,
+      minimumNoticeMinutes: 5,
+      weeklySchedule: {
+        ...settings.weeklySchedule,
+        friday: [
+          { start: "08:00", end: "12:00" },
+          { start: "14:00", end: "19:00" },
+          { start: "19:01", end: "23:00" },
+        ],
+      },
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it("owner salva tres periodos em todos os dias sem exceder o limite das regras", async () => {
+    const db = env.authenticatedContext("owner").firestore();
+    const maximumPeriods = [
+      { start: "08:00", end: "10:00" },
+      { start: "10:00", end: "12:00" },
+      { start: "14:00", end: "18:00" },
+    ];
+    await assertSucceeds(setDoc(doc(db, "settings", "public"), {
+      ...settings,
+      weeklySchedule: Object.fromEntries(
+        Object.keys(settings.weeklySchedule).map(day => [day, maximumPeriods]),
+      ),
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it("owner atualiza um servico existente", async () => {
+    const db = env.authenticatedContext("owner").firestore();
+    await assertSucceeds(updateDoc(doc(db, "services", "active"), {
+      name: "Corte atualizado",
+      description: "Descricao atualizada",
+      iconKey: "scissors",
+      durationMinutes: 45,
+      priceCents: 4000,
+      active: true,
+      sortOrder: 1,
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it("owner cancela um agendamento e atualiza os documentos relacionados", async () => {
+    await seedBooking();
+    const db = env.authenticatedContext("owner").firestore();
+    const batch = writeBatch(db);
+    batch.update(doc(db, "bookings", bookingId), {
+      status: "cancelled",
+      expiresAt: expires(Timestamp.now()),
+      updatedAt: serverTimestamp(),
+    });
+    batch.delete(doc(db, "customerBookingLocks", "client"));
+    batch.set(doc(db, "publicAvailability", futureKey), {
+      occupiedSlotKeys: [],
+      lastMutationId: `admin_${bookingId}`,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, "financialSummaries", futureKey.slice(0, 7)), {
+      completedRevenueCents: increment(0),
+      expectedRevenueCents: increment(0),
+      completedAppointments: increment(0),
+      confirmedAppointments: increment(0),
+      cancelledAppointments: increment(1),
+      pixRevenueCents: increment(0),
+      cashRevenueCents: increment(0),
+      cardRevenueCents: increment(0),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    await assertSucceeds(batch.commit());
+  });
+
+  it("owner conclui um agendamento e registra o financeiro", async () => {
+    await seedBooking();
+    const db = env.authenticatedContext("owner").firestore();
+    const batch = writeBatch(db);
+    batch.update(doc(db, "bookings", bookingId), {
+      status: "completed",
+      paymentMethod: "pix",
+      expiresAt: expires(Timestamp.now()),
+      updatedAt: serverTimestamp(),
+    });
+    batch.delete(doc(db, "customerBookingLocks", "client"));
+    batch.set(doc(db, "publicAvailability", futureKey), {
+      occupiedSlotKeys: ["09:00", "09:30"],
+      lastMutationId: `admin_${bookingId}`,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, "financialSummaries", futureKey.slice(0, 7)), {
+      completedRevenueCents: increment(3500),
+      expectedRevenueCents: increment(0),
+      completedAppointments: increment(1),
+      confirmedAppointments: increment(0),
+      cancelledAppointments: increment(0),
+      pixRevenueCents: increment(3500),
+      cashRevenueCents: increment(0),
+      cardRevenueCents: increment(0),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    await assertSucceeds(batch.commit());
+  });
+
+  it("owner reagenda um agendamento e troca a disponibilidade", async () => {
+    await seedBooking();
+    const db = env.authenticatedContext("owner").firestore();
+    const batch = writeBatch(db);
+    batch.update(doc(db, "bookings", bookingId), {
+      dateKey: secondFutureKey,
+      startTime: "09:00",
+      endTime: "10:00",
+      startAt: at(secondFutureKey, "09:00"),
+      endAt: at(secondFutureKey, "10:00"),
+      occupiedSlotKeys: ["09:00", "09:30"],
+      status: "pending",
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, "customerBookingLocks", "client"), {
+      bookingId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, "publicAvailability", futureKey), {
+      occupiedSlotKeys: [],
+      lastMutationId: `admin_${bookingId}`,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, "publicAvailability", secondFutureKey), {
+      occupiedSlotKeys: ["09:00", "09:30", "10:00"],
+      lastMutationId: `admin_${bookingId}`,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, "financialSummaries", futureKey.slice(0, 7)), {
+      completedRevenueCents: increment(0),
+      expectedRevenueCents: increment(0),
+      completedAppointments: increment(0),
+      confirmedAppointments: increment(0),
+      cancelledAppointments: increment(0),
+      pixRevenueCents: increment(0),
+      cashRevenueCents: increment(0),
+      cardRevenueCents: increment(0),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    await assertSucceeds(batch.commit());
   });
 });
 
