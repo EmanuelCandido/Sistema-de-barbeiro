@@ -498,12 +498,32 @@ a.active .nav-icon__bold {
 :root .timeline-actions button.timeline-action--reschedule:hover {
   border-color: #463be6;
   background: #463be6;
+  color: #fff;
 }
 
 :root .next-card__actions--quick button.timeline-action--cancel:hover,
 :root .timeline-actions button.timeline-action--cancel:hover {
   border-color: #d9282d;
   background: #d9282d;
+  color: #fff;
+}
+
+:root:not([data-theme="dark"]) .next-card__actions--quick button.timeline-action--reschedule:hover,
+:root:not([data-theme="dark"]) .timeline-actions button.timeline-action--reschedule:hover,
+:root[data-theme="dark"] .next-card__actions--quick button.timeline-action--reschedule:hover,
+:root[data-theme="dark"] .timeline-actions button.timeline-action--reschedule:hover {
+  border-color: #463be6;
+  background: #463be6;
+  color: #fff;
+}
+
+:root:not([data-theme="dark"]) .next-card__actions--quick button.timeline-action--cancel:hover,
+:root:not([data-theme="dark"]) .timeline-actions button.timeline-action--cancel:hover,
+:root[data-theme="dark"] .next-card__actions--quick button.timeline-action--cancel:hover,
+:root[data-theme="dark"] .timeline-actions button.timeline-action--cancel:hover {
+  border-color: #d9282d;
+  background: #d9282d;
+  color: #fff;
 }
 
 :root:not([data-theme="dark"]) .contact-dialog__phone,
@@ -658,7 +678,7 @@ a.active .nav-icon__bold {
     order: 2;
   }
 
-  :root:not([data-theme="dark"]) .dashboard-grid > .next-card {
+  :root:not([data-theme="dark"]) .dashboard-grid > .dashboard-primary {
     order: 3;
     grid-column: 1 / -1;
   }
@@ -898,7 +918,7 @@ a.active .nav-icon__bold {
     order: 2;
   }
 
-  :root[data-theme="dark"] .dashboard-grid > .next-card {
+  :root[data-theme="dark"] .dashboard-grid > .dashboard-primary {
     order: 3;
     grid-column: 1 / -1;
   }

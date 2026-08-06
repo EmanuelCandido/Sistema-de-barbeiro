@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { Header } from "./DashboardPage";
 import { getExceptions, getSettings, removeException, saveException, saveSettings } from "../services/adminData";
 import { adminMutationError } from "../lib/adminError";
@@ -81,6 +81,10 @@ export default function SchedulePage() {
       setExceptionError(adminMutationError(reason,"Não foi possível salvar a exceção."));
     }finally{setExceptionSaving(false);}
   }
+  function selectExceptionMode(nextClosed:boolean){
+    setClosed(nextClosed);setExceptionError("");
+    if(!nextClosed&&!specialPeriods.length)setSpecialPeriods([{start:"09:00",end:"17:00"}]);
+  }
   async function deleteException(key:string) {
     setExceptionError("");setExceptionSaved(false);
     try{await removeException(key);setExceptions(await getExceptions());}
@@ -116,17 +120,45 @@ export default function SchedulePage() {
     <section className="panel exceptions">
       <div className="panel__header"><div><p>EXCEÇÕES</p><h2>Bloqueios e horários especiais</h2></div></div>
       <div className="exception-form">
-        <label>Data<input type="date" value={specialDate} onChange={e=>{setSpecialDate(e.target.value);setExceptionError("");}}/></label>
-        <label className="check"><input type="checkbox" checked={closed} onChange={e=>{setClosed(e.target.checked);setExceptionError("");}}/> Dia fechado</label>
-        <label>Motivo opcional<input maxLength={160} value={reason} onChange={e=>setReason(e.target.value)}/></label>
-        {!closed && <div className="special-periods">{specialPeriods.map((period,index)=><div className="period" key={index}><input aria-label="Início" type="time" value={period.start} onChange={e=>{setExceptionError("");setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,start:e.target.value}:item));}}/><span>até</span><input aria-label="Fim" type="time" value={period.end} onChange={e=>{setExceptionError("");setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,end:e.target.value}:item));}}/><button type="button" aria-label="Remover período especial" title="Remover período" onClick={()=>setSpecialPeriods(items=>items.filter((_,i)=>i!==index))}><X size={23}/></button></div>)}<button type="button" className="secondary" disabled={specialPeriods.length>=3} onClick={()=>setSpecialPeriods(items=>items.length<3?[...items,{start:"08:00",end:"12:00"}]:items)}>+ Período especial</button></div>}
+        <label className="exception-date">Data da exceção<span className="exception-field">
+          <span className={`exception-field__value${specialDate?"":" is-placeholder"}`} aria-hidden="true">{formatDateInput(specialDate)}</span>
+          <ChevronDown className="exception-field__icon" aria-hidden="true" size={18}/>
+          <input className="exception-field__native" aria-label="Data da exceção" type="date" value={specialDate} onChange={e=>{setSpecialDate(e.target.value);setExceptionError("");}}/>
+        </span></label>
+        <div className="exception-mode" role="group" aria-label="Tipo da exceção">
+          <button type="button" className={!closed?"is-selected":""} aria-pressed={!closed} onClick={()=>selectExceptionMode(false)}>Horário especial</button>
+          <button type="button" className={closed?"is-selected":""} aria-pressed={closed} onClick={()=>selectExceptionMode(true)}>Dia fechado</button>
+        </div>
+        {!closed ? <div className="special-periods">
+          {specialPeriods.map((period,index)=><div className="special-period-row" key={index}>
+            <label>Abre às<span className="exception-field">
+              <span className="exception-field__value" aria-hidden="true">{period.start}</span>
+              <ChevronDown className="exception-field__icon" aria-hidden="true" size={18}/>
+              <input className="exception-field__native" aria-label={`Abertura do período ${index+1}`} type="time" value={period.start} onChange={e=>{setExceptionError("");setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,start:e.target.value}:item));}}/>
+            </span></label>
+            <label>Fecha às<span className="exception-field">
+              <span className="exception-field__value" aria-hidden="true">{period.end}</span>
+              <ChevronDown className="exception-field__icon" aria-hidden="true" size={18}/>
+              <input className="exception-field__native" aria-label={`Fechamento do período ${index+1}`} type="time" value={period.end} onChange={e=>{setExceptionError("");setSpecialPeriods(items=>items.map((item,i)=>i===index?{...item,end:e.target.value}:item));}}/>
+            </span></label>
+            {specialPeriods.length>1&&<button type="button" aria-label="Remover período especial" title="Remover período" onClick={()=>setSpecialPeriods(items=>items.filter((_,i)=>i!==index))}><X size={19}/></button>}
+          </div>)}
+          {specialPeriods.length<3&&<div className="special-periods__footer"><button type="button" onClick={()=>setSpecialPeriods(items=>[...items,{start:"09:00",end:"17:00"}])}>+ Adicionar período</button></div>}
+        </div>:null}
+        <label className="exception-reason">Motivo<input maxLength={160} placeholder="Digite um motivo (opcional)" value={reason} onChange={e=>setReason(e.target.value)}/></label>
         {exceptionError&&<p className="form-error" role="alert">{exceptionError}</p>}
         {exceptionSaved&&<p className="success-message" role="status">Exceção salva.</p>}
-        <button type="button" className="primary compact" disabled={exceptionSaving||!specialDate || (!closed && !specialPeriods.length)} onClick={addException}>{exceptionSaving?"Salvando…":"Adicionar exceção"}</button>
+        <button type="button" className="primary compact exception-submit" disabled={exceptionSaving||!specialDate || (!closed && !specialPeriods.length)} onClick={addException}>{exceptionSaving?"Salvando…":"Adicionar exceção"}</button>
       </div>
       <div className="exception-list">{exceptions.map(item=><article key={item.id}><div><strong>{new Intl.DateTimeFormat("pt-BR",{timeZone:"UTC",dateStyle:"long"}).format(new Date(`${item.id}T12:00:00Z`))}</strong><small>{item.closed ? "Fechado" : item.customPeriods?.map(p=>`${p.start}–${p.end}`).join(", ")}{item.reason ? ` · ${item.reason}` : ""}</small></div><button className="text-danger" onClick={()=>deleteException(item.id)}>Remover</button></article>)}{!exceptions.length&&<p className="empty-row">Nenhuma exceção cadastrada.</p>}</div>
     </section>
   </>;
+}
+
+function formatDateInput(value:string){
+  if(!value)return "dd/mm/aaaa";
+  const [year,month,day]=value.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 function validateSchedule(schedule:PublicSettings["weeklySchedule"]){

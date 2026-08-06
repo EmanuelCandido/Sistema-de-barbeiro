@@ -19,15 +19,16 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { buildAvailableTimes } from "../lib/availability";
+import { MAX_BOOKING_SERVICES } from "../lib/bookingLimits";
 import { addDays, dateKey } from "../lib/format";
-import type { Booking, BookingStatus, FinancialSummary, PaymentMethod, PublicAvailability, Service } from "../types";
+import type { Booking, BookingStatus, DateException, FinancialSummary, PaymentMethod, PublicAvailability, PublicSettings, Service } from "../types";
 
 const legacyInactiveStatus = ["no", "show"].join("_");
 const bookingRetentionDays = 180;
 type SummaryValues = Omit<FinancialSummary, "updatedAt">;
 
-function normalizeStatus(status: unknown, paymentMethod?: unknown): BookingStatus {
-  if (status === "completed" && !["pix", "cash", "card"].includes(String(paymentMethod))) return "pending";
+function normalizeStatus(status: unknown, _paymentMethod?: unknown): BookingStatus {
   return status === legacyInactiveStatus ? "cancelled" : status as BookingStatus;
 }
 
@@ -48,6 +49,154 @@ function availabilityMutation(occupied: Record<string, boolean>, lastMutationId:
     lastMutationId,
     updatedAt: serverTimestamp(),
   };
+}
+
+export async function createAdminBooking({
+  date,
+  startTime,
+  clientName,
+  clientPhone,
+  clientNote,
+  services,
+}: {
+  date:string;
+  startTime:string;
+  clientName:string;
+  clientPhone:string;
+  clientNote:string;
+  services:Service[];
+}) {
+  const cleanName=clientName.trim();
+  const cleanPhone=clientPhone.replace(/\D/g,"");
+  const cleanNote=clientNote.trim();
+  if(cleanName.length<2||cleanName.length>80)throw new Error("Informe um nome entre 2 e 80 caracteres.");
+  if(cleanPhone&&!/^\d{10,11}$/.test(cleanPhone))throw new Error("Informe um WhatsApp válido com DDD ou deixe o campo vazio.");
+  if(cleanNote.length>300)throw new Error("A observação deve ter no máximo 300 caracteres.");
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime))throw new Error("Informe uma data e um horário válidos.");
+
+  const serviceIds=[...new Set(services.map(service=>service.id))];
+  if(!serviceIds.length)throw new Error("Selecione pelo menos um serviço.");
+  if(serviceIds.length>MAX_BOOKING_SERVICES)throw new Error(`Selecione no máximo ${MAX_BOOKING_SERVICES} serviços.`);
+  const bookingRef=doc(collection(db,"bookings"));
+  const settingsRef=doc(db,"settings","public");
+  const exceptionRef=doc(db,"exceptions",date);
+  const availabilityRef=doc(db,"publicAvailability",date);
+  const serviceRefs=serviceIds.map(id=>doc(db,"services",id));
+
+  await runTransaction(db,async transaction=>{
+    const[settingsSnapshot,exceptionSnapshot,availabilitySnapshot,...serviceSnapshots]=await Promise.all([
+      transaction.get(settingsRef),
+      transaction.get(exceptionRef),
+      transaction.get(availabilityRef),
+      ...serviceRefs.map(ref=>transaction.get(ref)),
+    ]);
+    if(!settingsSnapshot.exists())throw new Error("Configuração da agenda indisponível.");
+    if(serviceSnapshots.some(snapshot=>!snapshot.exists()||snapshot.data().active!==true))throw new Error("Um dos serviços selecionados não está mais disponível.");
+
+    const currentServices=serviceSnapshots.map(snapshot=>({id:snapshot.id,...snapshot.data()} as Service));
+    const service=combinedServices(currentServices);
+    const settings=settingsSnapshot.data() as PublicSettings;
+    const targetDate=new Date(`${date}T12:00:00-03:00`);
+    const lastDate=addDays(new Date(),settings.bookingAdvanceDays);
+    if(Number.isNaN(targetDate.getTime())||dateKey(targetDate)!==date||targetDate<new Date(`${dateKey(new Date())}T00:00:00-03:00`)||dateKey(targetDate)>dateKey(lastDate)){
+      throw new Error("A data está fora do período disponível para agendamento.");
+    }
+    const exception=exceptionSnapshot.exists()?exceptionSnapshot.data() as DateException:null;
+    const occupied=occupiedMap(availabilitySnapshot.exists()?availabilitySnapshot.data():undefined);
+    const availableTimes=buildAvailableTimes(targetDate,settings,service.durationMinutesSnapshot,occupied,exception);
+    if(!availableTimes.includes(startTime))throw new Error("Este horário não está mais disponível.");
+
+    const startMinutes=Number(startTime.slice(0,2))*60+Number(startTime.slice(3));
+    const occupiedSlotKeys=occupiedSlotsForService(startMinutes,service.durationMinutesSnapshot,settings.slotIntervalMinutes);
+    const endTime=toTime(startMinutes+service.durationMinutesSnapshot);
+    occupiedSlotKeys.forEach(slot=>{occupied[slot]=true});
+    transaction.set(bookingRef,{
+      dateKey:date,
+      startTime,
+      endTime,
+      startAt:Timestamp.fromDate(new Date(`${date}T${startTime}:00-03:00`)),
+      endAt:Timestamp.fromDate(new Date(`${date}T${endTime}:00-03:00`)),
+      occupiedSlotKeys,
+      ...service,
+      clientName:cleanName,
+      clientPhone:cleanPhone,
+      ...(cleanNote?{clientNote:cleanNote}:{}),
+      status:"pending",
+      createdByUid:`admin_${bookingRef.id}`,
+      createdAt:serverTimestamp(),
+      updatedAt:serverTimestamp(),
+    });
+    transaction.set(availabilityRef,availabilityMutation(occupied,`admin_${bookingRef.id}`),{merge:false});
+  });
+  return bookingRef.id;
+}
+
+export async function createWalkInBooking({
+  clientName,
+  services,
+}: {
+  clientName:string;
+  services:Service[];
+}) {
+  const typedName=clientName.trim();
+  const cleanName=typedName||"Cliente não informado";
+  if(typedName.length===1||cleanName.length>80)throw new Error("Informe um nome entre 2 e 80 caracteres ou deixe o campo vazio.");
+
+  const serviceIds=[...new Set(services.map(service=>service.id))];
+  if(!serviceIds.length)throw new Error("Selecione pelo menos um serviço.");
+  if(serviceIds.length>MAX_BOOKING_SERVICES)throw new Error(`Selecione no máximo ${MAX_BOOKING_SERVICES} serviços.`);
+
+  const bookingRef=doc(collection(db,"bookings"));
+  const serviceRefs=serviceIds.map(id=>doc(db,"services",id));
+  const now=new Date();
+  const local=localDateTime(now);
+  const summaryRef=doc(db,"financialSummaries",local.date.slice(0,7));
+
+  await runTransaction(db,async transaction=>{
+    const serviceSnapshots=await Promise.all(serviceRefs.map(ref=>transaction.get(ref)));
+    if(serviceSnapshots.some(snapshot=>!snapshot.exists()||snapshot.data().active!==true))throw new Error("Um dos serviços selecionados não está mais disponível.");
+
+    const currentServices=serviceSnapshots.map(snapshot=>({id:snapshot.id,...snapshot.data()} as Service));
+    const service=combinedServices(currentServices);
+    const currentMinutes=Number(local.time.slice(0,2))*60+Number(local.time.slice(3));
+    const endMinutes=Math.max(currentMinutes,service.durationMinutesSnapshot);
+    const startMinutes=endMinutes-service.durationMinutesSnapshot;
+    const startTime=toTime(startMinutes);
+    const endTime=toTime(endMinutes);
+
+    transaction.set(bookingRef,{
+      dateKey:local.date,
+      startTime,
+      endTime,
+      startAt:Timestamp.fromDate(new Date(`${local.date}T${startTime}:00-03:00`)),
+      endAt:Timestamp.fromDate(new Date(`${local.date}T${endTime}:00-03:00`)),
+      expiresAt:retentionExpiry(),
+      occupiedSlotKeys:[startTime],
+      ...service,
+      clientName:cleanName,
+      clientPhone:"",
+      status:"completed",
+      createdByUid:`admin_${bookingRef.id}`,
+      createdAt:serverTimestamp(),
+      updatedAt:serverTimestamp(),
+    });
+    transaction.set(summaryRef,summaryMutation(contribution("completed",undefined,service.priceCentsSnapshot)),{merge:true});
+  });
+  return bookingRef.id;
+}
+
+function localDateTime(value:Date){
+  const parts=new Intl.DateTimeFormat("en-CA",{
+    timeZone:"America/Recife",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit",
+    hour:"2-digit",
+    minute:"2-digit",
+    hourCycle:"h23",
+  }).formatToParts(value);
+  const part=(type:Intl.DateTimeFormatPartTypes)=>parts.find(item=>item.type===type)?.value||"";
+  return{date:`${part("year")}-${part("month")}-${part("day")}`,time:`${part("hour")}:${part("minute")}`};
 }
 
 function weekQuery(weekStart: Date) {
@@ -206,9 +355,9 @@ export async function changeBookingStatus(booking: Booking, newStatus: BookingSt
       ...(["cancelled", "completed"].includes(newStatus) ? { expiresAt: retentionExpiry() } : { expiresAt: deleteField() }),
       updatedAt: serverTimestamp(),
     });
-    if (newStatus === "cancelled" || newStatus === "completed") {
+    if ((newStatus === "cancelled" || newStatus === "completed") && !isAdminCreatedBooking(data)) {
       transaction.delete(lockRef);
-    } else if (!wasBlocking) {
+    } else if (!wasBlocking && !isAdminCreatedBooking(data)) {
       transaction.set(lockRef, lockMutation(booking.id), { merge: false });
     }
     transaction.set(summaryRef, summaryMutation(summaryDelta), { merge: true });
@@ -255,7 +404,6 @@ export async function completeBooking(
     const endAt = Timestamp.fromDate(new Date(`${current.dateKey}T${endTime}:00-03:00`));
     transaction.update(bookingRef, {
       ...service,
-      serviceIds: deleteField(),
       endTime,
       endAt,
       expiresAt: retentionExpiry(),
@@ -264,7 +412,7 @@ export async function completeBooking(
       paymentMethod,
       updatedAt: serverTimestamp(),
     });
-    transaction.delete(lockRef);
+    if (!isAdminCreatedBooking(current)) transaction.delete(lockRef);
     transaction.set(availabilityRef, availabilityMutation(occupied, `admin_${booking.id}`), { merge: false });
     transaction.set(summaryRef, summaryMutation(summaryDelta), { merge: true });
   });
@@ -272,7 +420,11 @@ export async function completeBooking(
 
 function combinedServices(services: Service[]) {
   if (!services.length) throw new Error("Selecione pelo menos um serviço.");
-  const serviceId = services.map(service => service.id).join("+");
+  const serviceIds = services.map(service => service.id);
+  if (serviceIds.length > MAX_BOOKING_SERVICES || new Set(serviceIds).size !== serviceIds.length) {
+    throw new Error(`Selecione no máximo ${MAX_BOOKING_SERVICES} serviços diferentes.`);
+  }
+  const serviceId = serviceIds.join("+");
   const serviceNameSnapshot = services.map(service => service.name.trim()).join(" + ");
   const durationMinutesSnapshot = services.reduce((total, service) => total + service.durationMinutes, 0);
   const priceCentsSnapshot = services.reduce((total, service) => total + service.priceCents, 0);
@@ -288,7 +440,7 @@ function combinedServices(services: Service[]) {
   ) {
     throw new Error("A combinação de serviços ultrapassa os limites permitidos.");
   }
-  return { serviceId, serviceNameSnapshot, durationMinutesSnapshot, priceCentsSnapshot };
+  return { serviceId, serviceIds, serviceNameSnapshot, durationMinutesSnapshot, priceCentsSnapshot };
 }
 
 function toTime(value: number) {
@@ -331,7 +483,6 @@ export async function rescheduleBooking(
     const newEndAt = Timestamp.fromDate(new Date(`${newDate}T${newEnd}:00-03:00`));
     const data: UpdateData<DocumentData> = {
       ...service,
-      serviceIds: deleteField(),
       dateKey: newDate,
       startTime: newStart,
       endTime: newEnd,
@@ -350,7 +501,7 @@ export async function rescheduleBooking(
     const summaryRef = doc(db, "financialSummaries", current.dateKey.slice(0, 7));
 
     transaction.update(bookingRef, data);
-    transaction.set(lockRef, lockMutation(booking.id), { merge: false });
+    if (!isAdminCreatedBooking(current)) transaction.set(lockRef, lockMutation(booking.id), { merge: false });
     if (newDate === current.dateKey) {
       transaction.set(oldAvailabilityRef, availabilityMutation(targetSlots, `admin_${booking.id}`), { merge: false });
     } else {
@@ -409,13 +560,12 @@ export async function editBookingDetails(
       clientPhone: clientPhone.replace(/\D/g, ""),
       clientNote: clientNote.trim(),
       ...service,
-      serviceIds: deleteField(),
       endTime,
       endAt,
       occupiedSlotKeys,
       updatedAt: serverTimestamp(),
     });
-    if (["pending", "confirmed"].includes(currentStatus)) {
+    if (["pending", "confirmed"].includes(currentStatus) && !isAdminCreatedBooking(current)) {
       transaction.set(lockRef, lockMutation(booking.id), { merge: false });
     }
     transaction.set(summaryRef, summaryMutation(summaryDelta), { merge: true });
@@ -439,6 +589,10 @@ function retentionExpiry() {
 
 function lockMutation(bookingId: string) {
   return { bookingId, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+}
+
+function isAdminCreatedBooking(booking:Pick<Booking,"createdByUid">){
+  return booking.createdByUid.startsWith("admin_");
 }
 
 export async function rebuildMonthSummary(month: string) {

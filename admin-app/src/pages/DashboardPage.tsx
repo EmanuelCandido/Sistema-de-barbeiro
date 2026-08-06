@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, CheckCircle2, Clock3, Copy, Settings, X } from "lucide-react";
+import { Check, CheckCircle2, Clock3, Copy, Plus, Settings, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Link } from "wouter";
 import { BookingModal } from "../components/BookingModal";
+import { NewBookingChoice, NewBookingModal } from "../components/NewBookingModal";
 import { isBookingOverdue, StatusBadge } from "../components/StatusBadge";
 import { money, startOfWeek, todayKey } from "../lib/format";
 import { getCalendarDays, getSettings } from "../services/adminData";
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [slotInterval, setSlotInterval] = useState(30);
   const [agendaPeriods, setAgendaPeriods] = useState<Period[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creatingBooking,setCreatingBooking]=useState<"choice"|"schedule"|"walkin">();
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockTick(Date.now()), 30_000);
@@ -86,26 +88,34 @@ export default function DashboardPage() {
         eyebrow="VISÃO GERAL"
         title="Bom trabalho hoje"
         text={new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long", timeZone: "America/Recife" }).format(new Date())}
-        action={<Link className="mobile-settings" href="/configuracoes" aria-label="Abrir configurações" title="Configurações"><Settings size={21} /></Link>}
+        action={<div className="dashboard-header-actions">
+          <button type="button" className="dashboard-new-booking dashboard-new-booking--desktop" aria-haspopup="dialog" onClick={()=>setCreatingBooking("choice")}><span>Novo agendamento</span><Plus size={20} strokeWidth={1.8} aria-hidden="true" /></button>
+          <Link className="mobile-settings" href="/configuracoes" aria-label="Abrir configurações" title="Configurações"><Settings size={21} /></Link>
+        </div>}
       />
       {loading ? (
         <div className="loading-card">Carregando resumo…</div>
       ) : (
         <>
           <section className="dashboard-grid">
-            <article className="next-card">
-              <div className="next-card__header"><p>{current?"Atendimento atual":"Próximo Atendimento"}</p></div>
-              {next ? (
-                <>
-                  <div className="next-card__main"><strong>{next.startTime}</strong><span><button className="next-card__client" onClick={()=>setContact(next)}>{next.clientName}</button><small>{next.serviceNameSnapshot} · {next.durationMinutesSnapshot} min</small></span></div>
-                  <div className="next-card__actions next-card__actions--quick">
-                    <button className="timeline-action--finish" onClick={()=>openBooking(next,"payment")}><CheckCircle2 size={16}/>Finalizar</button>
-                    <button className="timeline-action--reschedule" onClick={()=>openBooking(next,"reschedule")}><span className="action-svg action-svg--reschedule" aria-hidden="true"/>Reagendar</button>
-                    <button className="timeline-action--cancel" onClick={()=>openBooking(next,"cancel")}><span className="action-svg action-svg--cancel" aria-hidden="true"/>Cancelar</button>
-                  </div>
-                </>
-              ) : <div className="empty-small">Nenhum atendimento próximo hoje.</div>}
-            </article>
+            <div className="dashboard-primary">
+              <article className="next-card">
+                <div className="next-card__header"><p>{current?"Atendimento atual":"Próximo Atendimento"}</p></div>
+                {next ? (
+                  <>
+                    <div className="next-card__main"><strong>{next.startTime}</strong><span><button className="next-card__client" onClick={()=>setContact(next)}>{next.clientName}</button><small>{next.serviceNameSnapshot} · {next.durationMinutesSnapshot} min</small></span></div>
+                    <div className="next-card__actions next-card__actions--quick">
+                      <button className="timeline-action--finish" onClick={()=>openBooking(next,"payment")}><CheckCircle2 size={16}/>Finalizar</button>
+                      <button className="timeline-action--reschedule" onClick={()=>openBooking(next,"reschedule")}><span className="action-svg action-svg--reschedule" aria-hidden="true"/>Reagendar</button>
+                      <button className="timeline-action--cancel" onClick={()=>openBooking(next,"cancel")}><span className="action-svg action-svg--cancel" aria-hidden="true"/>Cancelar</button>
+                    </div>
+                  </>
+                ) : <div className="empty-small">Nenhum atendimento próximo hoje.</div>}
+              </article>
+              <button type="button" className="dashboard-new-booking dashboard-new-booking--mobile" aria-haspopup="dialog" onClick={()=>setCreatingBooking("choice")}>
+                <span>Novo agendamento</span><Plus size={20} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            </div>
             <article className="metric accent dashboard-revenue-today"><span className="metric__icon"><img src="/nav-icons/finance.svg" alt="" /></span><span>Hoje</span><strong>{money(numbers.todayCompleted)}</strong></article>
             <article className="metric appointments-card"><span className="metric__icon"><img src="/nav-icons/services.svg" alt="" /></span><span>Atendimentos hoje</span><div className="appointments-card__summary"><strong>{todayBookings.length}</strong></div></article>
             <article className="metric dashboard-revenue-week"><span className="metric__icon"><img src="/nav-icons/finance.svg" alt="" /></span><span>Semana</span><strong>{money(numbers.weekCompleted)}</strong></article>
@@ -162,6 +172,8 @@ export default function DashboardPage() {
         />
       )}
       {contact&&<ContactDialog booking={contact} close={()=>setContact(undefined)}/>}
+      {creatingBooking==="choice"&&<NewBookingChoice close={()=>setCreatingBooking(undefined)} select={setCreatingBooking}/>}
+      {(creatingBooking==="schedule"||creatingBooking==="walkin")&&<NewBookingModal mode={creatingBooking} close={()=>setCreatingBooking(undefined)} onCreated={()=>setCreatingBooking(undefined)}/>}
     </>
   );
 }
@@ -217,11 +229,11 @@ function ContactDialog({booking,close}:{booking:Booking;close:()=>void}){
     <section className="payment-choice contact-dialog" role="dialog" aria-modal="true" aria-labelledby="contact-title">
       <button className="payment-choice__close" onClick={close} aria-label="Fechar"><X size={23}/></button>
       <p>CONTATO DO CLIENTE</p><h3 id="contact-title">{booking.clientName}</h3>
-      <span className="contact-dialog__phone">{booking.clientPhone}</span>
-      <div className="contact-dialog__actions">
+      <span className="contact-dialog__phone">{booking.clientPhone||"Não informado"}</span>
+      {booking.clientPhone&&<div className="contact-dialog__actions">
         <button className="secondary" onClick={copy}>{copied?<Check size={17}/>:<Copy size={17}/>} {copied?"Copiado":"Copiar número"}</button>
         <a href={`https://wa.me/55${booking.clientPhone}`} target="_blank" rel="noreferrer"><FaWhatsapp size={18}/>Abrir WhatsApp</a>
-      </div>
+      </div>}
     </section>
   </div>;
 }

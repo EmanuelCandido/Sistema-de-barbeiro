@@ -256,7 +256,7 @@ service cloud.firestore {
         data.clientName.size() >= 2 &&
         data.clientName.size() <= 80 &&
         data.clientPhone is string &&
-        data.clientPhone.matches('^[0-9]{10,11}$') &&
+        (data.clientPhone == "" || data.clientPhone.matches('^[0-9]{10,11}$')) &&
         (!data.keys().hasAny(["clientNote"]) ||
           (data.clientNote is string && data.clientNote.size() <= 300)) &&
         data.status in ["pending", "confirmed", "completed", "cancelled"] &&

@@ -797,6 +797,14 @@ describe("reagendamento protegido", () => {
 });
 
 describe("papéis administrativos", () => {
+  it("owner cria agendamento sem WhatsApp", async () => {
+    const db = env.authenticatedContext("owner").firestore();
+    await assertSucceeds(setDoc(doc(db, "bookings", "admin-booking-without-phone"), booking("admin_booking_without_phone", {
+      clientPhone: "",
+      lastCustomerMutation: "create",
+    })));
+  });
+
   it("owner ativo acessa dados privados e grava resumos", async () => {
     const db = env.authenticatedContext("owner").firestore();
     await assertSucceeds(getDocs(collection(db, "bookings")));

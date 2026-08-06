@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Banknote, ChevronDown, ChevronRight, CreditCard, QrCode, X, type LucideIcon } from "lucide-react";
 import { buildAvailableTimes, getPeriods } from "../lib/availability";
+import { MAX_BOOKING_SERVICES } from "../lib/bookingLimits";
 import { addDays, dateKey, dateLong, money } from "../lib/format";
 import { adminMutationError } from "../lib/adminError";
 import { getCalendarDays, getServices, getSettings } from "../services/adminData";
@@ -45,13 +46,13 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
     void getServices().then(items=>{
       if(!active)return;
       setServices(items);
-      const storedIds=booking.serviceId.split("+");
+      const storedIds=booking.serviceIds?.length?booking.serviceIds:booking.serviceId.split("+");
       const matched=items.filter(service=>storedIds.includes(service.id));
       const fallback=items.find(service=>service.id===booking.serviceId||service.name===booking.serviceNameSnapshot);
       setSelectedServiceIds(matched.length?matched.map(service=>service.id):fallback?[fallback.id]:[]);
     }).catch(()=>setError("Não foi possível carregar os serviços.")).finally(()=>active&&setServicesLoading(false));
     return()=>{active=false};
-  },[booking.serviceId,booking.serviceNameSnapshot,services.length,view]);
+  },[booking.serviceId,booking.serviceIds,booking.serviceNameSnapshot,services.length,view]);
 
   useEffect(()=>{
     if(view!=="reschedule")return;
@@ -112,8 +113,8 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
   async function submitEdit(event:FormEvent){
     event.preventDefault();
     const digits=phone.replace(/\D/g,"");
-    if(name.trim().length<2||digits.length<10||digits.length>11||note.length>300){
-      setError("Revise o nome, o WhatsApp com DDD e o limite de 300 caracteres.");return;
+    if(name.trim().length<2||(digits.length>0&&(digits.length<10||digits.length>11))||note.length>300){
+      setError("Revise o nome, o WhatsApp opcional com DDD e o limite de 300 caracteres.");return;
     }
     if(!selectedServices.length){setError("Selecione pelo menos um serviço.");return}
     setBusy(true);setError("");
@@ -178,7 +179,7 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
       <p>EDITAR AGENDAMENTO</p><h3>Dados do cliente</h3><span className="payment-choice__hint">Atualize as informações usadas no atendimento.</span>
       <div className="action-dialog__fields">
         <label>Nome<input required maxLength={80} value={name} onChange={event=>setName(event.target.value)}/></label>
-        <label>WhatsApp<input required inputMode="numeric" maxLength={16} value={phone} onChange={event=>setPhone(event.target.value)}/></label>
+        <label>WhatsApp (opcional)<input inputMode="numeric" maxLength={16} value={phone} onChange={event=>setPhone(event.target.value)}/></label>
         <label>Observação<textarea maxLength={300} value={note} onChange={event=>setNote(event.target.value)}/><small>{note.length}/300</small></label>
       </div>
       <ServicePicker services={services} selectedIds={selectedServiceIds} loading={servicesLoading} toggle={toggleService} duration={selectedDuration} price={selectedPrice}/>
@@ -220,7 +221,7 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
       <button className="modal__close" onClick={close} aria-label="Fechar"><X size={24}/></button>
       <p>DETALHES DO AGENDAMENTO</p><h2 id="detail-title">{booking.clientName}</h2><StatusBadge status={booking.status} overdue={isBookingOverdue(booking)}/>
       <dl>
-        <div><dt>WhatsApp</dt><dd><a href={`https://wa.me/55${booking.clientPhone}`} target="_blank" rel="noreferrer">{booking.clientPhone}</a></dd></div>
+        <div><dt>WhatsApp</dt><dd>{booking.clientPhone?<a href={`https://wa.me/55${booking.clientPhone}`} target="_blank" rel="noreferrer">{booking.clientPhone}</a>:"Não informado"}</dd></div>
         <div><dt>Serviço</dt><dd>{booking.serviceNameSnapshot} · {booking.durationMinutesSnapshot} min</dd></div>
         <div><dt>Data</dt><dd>{dateLong(booking.dateKey)}, {booking.startTime}–{booking.endTime}</dd></div>
         <div><dt>Preço registrado</dt><dd>{money(booking.priceCentsSnapshot)}</dd></div>
@@ -241,16 +242,16 @@ export function BookingModal({booking,interval,close,refresh,initialAction}:{
 function PaymentOption({label,Icon,value,selected,onSelect}:{label:string;Icon:LucideIcon;value:PaymentMethod;selected:PaymentMethod;onSelect:(value:PaymentMethod)=>void}){
   return <button className={selected===value?"selected":""} aria-pressed={selected===value} onClick={()=>onSelect(value)}><Icon size={24} strokeWidth={1.8}/><span>{label}</span></button>;
 }
-function ServicePicker({services,selectedIds,loading,toggle,duration,price,compact=false}:{services:Service[];selectedIds:string[];loading:boolean;toggle:(id:string)=>void;duration:number;price:number;compact?:boolean}){
+export function ServicePicker({services,selectedIds,loading,toggle,duration,price,compact=false}:{services:Service[];selectedIds:string[];loading:boolean;toggle:(id:string)=>void;duration:number;price:number;compact?:boolean}){
   const visible=services.filter(service=>service.active||selectedIds.includes(service.id));
   return <fieldset className={`booking-service-picker ${compact?"booking-service-picker--compact":""}`}>
-    {!compact&&<legend>Serviços <small>selecione um ou mais</small></legend>}
+    {!compact&&<legend>Serviços <small>selecione até {MAX_BOOKING_SERVICES}</small></legend>}
     {loading?<span className="booking-service-picker__loading">Carregando serviços…</span>:<div className="booking-service-picker__options">
-      {visible.map(service=><button type="button" key={service.id} className={selectedIds.includes(service.id)?"booking-service-option selected":"booking-service-option"} aria-pressed={selectedIds.includes(service.id)} onClick={()=>toggle(service.id)}>
+      {visible.map(service=>{const selected=selectedIds.includes(service.id);return <button type="button" key={service.id} disabled={!selected&&selectedIds.length>=MAX_BOOKING_SERVICES} className={selected?"booking-service-option selected":"booking-service-option"} aria-pressed={selected} onClick={()=>toggle(service.id)}>
         <span><strong>{service.name}</strong>{!compact&&<small>{service.durationMinutes} min</small>}</span><b>{money(service.priceCents)}</b>
-      </button>)}
+      </button>})}
     </div>}
-    <div className="booking-service-total"><span>{selectedIds.length} {selectedIds.length===1?"serviço":"serviços"}</span><strong>{compact?money(price):`${duration} min · ${money(price)}`}</strong></div>
+    <div className="booking-service-total"><span>{selectedIds.length} de {MAX_BOOKING_SERVICES} {selectedIds.length===1?"serviço":"serviços"}</span><strong>{compact?money(price):`${duration} min · ${money(price)}`}</strong></div>
   </fieldset>;
 }
 function paymentLabel(payment?:PaymentMethod){if(payment==="pix")return"PIX";if(payment==="cash")return"Dinheiro";if(payment==="card")return"Cartão";return"Não informado"}
