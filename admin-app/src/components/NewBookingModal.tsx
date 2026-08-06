@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Calendar, CheckCircle2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { buildAvailableTimes, getPeriods } from "../lib/availability";
 import { adminMutationError } from "../lib/adminError";
 import { addDays, dateKey } from "../lib/format";
@@ -19,11 +19,11 @@ export function NewBookingChoice({close,select}:{close:()=>void;select:(mode:New
       <p>NOVO ATENDIMENTO</p><h3 id="new-booking-choice-title">Como deseja adicionar?</h3>
       <span className="payment-choice__hint">Escolha um encaixe já realizado ou reserve um horário na agenda.</span>
       <div className="new-booking-choice__options">
-        <button type="button" onClick={()=>select("walkin")}>
-          <CheckCircle2 size={24} aria-hidden="true"/><span><strong>Encaixar</strong><small>Registrar serviços feitos como concluídos</small></span>
+        <button type="button" className="new-booking-choice__walkin" onClick={()=>select("walkin")}>
+          <img src="/action-icons/tick-circle.svg" alt=""/><span><strong>Encaixar</strong><small>Registrar serviços feitos como concluídos</small></span>
         </button>
-        <button type="button" onClick={()=>select("schedule")}>
-          <Calendar size={24} aria-hidden="true"/><span><strong>Agendar</strong><small>Escolher uma data e um horário disponíveis</small></span>
+        <button type="button" className="new-booking-choice__schedule" onClick={()=>select("schedule")}>
+          <img src="/action-icons/calendar.svg" alt=""/><span><strong>Agendar</strong><small>Escolher uma data e um horário disponíveis</small></span>
         </button>
       </div>
     </section>
