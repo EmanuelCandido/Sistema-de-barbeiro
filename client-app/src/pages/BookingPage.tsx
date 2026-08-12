@@ -12,6 +12,7 @@ import { ServicePicker } from "../components/ServicePicker";
 import { MAX_BOOKING_SERVICES } from "../lib/bookingLimits";
 
 const initialClient: ClientDetails = { name: "", phone: "", note: "" };
+const businessMapsUrl = "https://maps.app.goo.gl/JGVtd689e9CUkFBLA";
 
 export function BookingPage() {
   const [, navigate] = useLocation();
@@ -240,9 +241,10 @@ export function BookingPage() {
               <div className="review__row"><span><dt>Serviços</dt><dd>{selectedServiceName}<small>{selectedDuration} minutos · {money(selectedPrice)}</small></dd></span><ReviewEditButton label="Editar serviços" onClick={() => startEdit(1)} /></div>
               <div className="review__row"><span><dt>Data e horário</dt><dd>{formatDateLong(dateKey(selectedDate))}<small>{selectedTime} até {minutesToTime(timeToMinutes(selectedTime) + selectedDuration)}</small></dd></span><ReviewEditButton label="Editar data e horário" onClick={() => startEdit(2)} /></div>
               <div className="review__row"><span><dt>Cliente</dt><dd>{client.name}<small>{formatPhone(client.phone)}</small></dd></span><ReviewEditButton label="Editar dados do cliente" onClick={() => startEdit(4)} /></div>
+              <div className="review__row"><span><dt>Localização</dt><dd>Barbearia DaVinci<small>Av. Senador Arêa Leão, Jóquei<br/>Teresina - PI, 64049-110</small></dd></span><a className="review__edit review__map" href={businessMapsUrl} target="_blank" rel="noreferrer" aria-label="Abrir localização da Barbearia DaVinci no Google Maps" title="Abrir no Google Maps"><img src="/action-icons/map.svg" alt="" aria-hidden="true" /></a></div>
               {client.note && <div><dt>Observação</dt><dd>{client.note}</dd></div>}
             </dl>
-            <Footer back={() => setStep(4)} next={confirm} nextLabel={submitting ? "Confirmando…" : "Confirmar agendamento"} disabled={submitting || !authState.ready} />
+            <Footer back={() => setStep(4)} roundedBack next={confirm} nextLabel={submitting ? "Confirmando…" : "Confirmar agendamento"} disabled={submitting || !authState.ready} />
           </>}
         </div>
         {error && <p className="alert" role="alert">{error}</p>}
@@ -274,8 +276,8 @@ function ExistingBooking({ booking, businessName }: { booking: CustomerBooking; 
   </main>;
 }
 
-function Footer({ back, next, disabled, fixed = false, backLabel = "Voltar", nextLabel = "Continuar" }: { back?: () => void; next?: () => void; disabled?: boolean; fixed?: boolean; backLabel?: string; nextLabel?: string }) {
-  return <div className={`actions ${fixed ? "actions--fixed" : ""}`}>{back && <button className="button button--ghost" onClick={back}><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button>}{next && <button className="button button--primary" onClick={next} disabled={disabled}>{nextLabel}</button>}</div>;
+function Footer({ back, next, disabled, fixed = false, roundedBack = false, backLabel = "Voltar", nextLabel = "Continuar" }: { back?: () => void; next?: () => void; disabled?: boolean; fixed?: boolean; roundedBack?: boolean; backLabel?: string; nextLabel?: string }) {
+  return <div className={`actions ${fixed ? "actions--fixed" : ""}`}>{back && <button className={`button button--ghost ${roundedBack ? "button--rounded-back" : ""}`} onClick={back}>{!roundedBack && <ArrowLeft size={17} aria-hidden="true" />}{backLabel}</button>}{next && <button className="button button--primary" onClick={next} disabled={disabled}>{nextLabel}</button>}</div>;
 }
 
 function EditToolbar({ cancel }: { cancel: () => void }) {
@@ -287,7 +289,7 @@ function State({ title, text, retry }: { title: string; text: string; retry?: ()
 }
 
 function ReviewEditButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return <button type="button" className="review__edit" onClick={onClick} aria-label={label} title={label}><Pencil size={16} aria-hidden="true" /></button>;
+  return <button type="button" className="review__edit" onClick={onClick} aria-label={label} title={label}><img className="review__edit-icon" src="/action-icons/iconsax-edit.svg" alt="" aria-hidden="true" /></button>;
 }
 
 function formatPhone(value: string) {
