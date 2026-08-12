@@ -101,6 +101,13 @@ O projeto não depende de Cloud Functions, Cloud Run ou um backend próprio. Cri
 - **Qualidade:** TypeScript estrito, Node Test Runner, Firebase Emulator Suite e Rules Unit Testing;
 - **Segurança HTTP:** CSP, HSTS, `nosniff`, Referrer Policy, bloqueio de enquadramento e Permissions Policy.
 
+## Produção e publicação
+
+> [!IMPORTANT]
+> O site do cliente em produção é [https://agendamento-josenilson.netlify.app](https://agendamento-josenilson.netlify.app). Alterações em `client-app` devem ser compiladas e publicadas **diretamente nesse site pelo Netlify**; publicar apenas no Firebase Hosting ou enviar o código ao GitHub não atualiza o ambiente de produção do cliente.
+
+Antes de concluir qualquer alteração no site do cliente, execute o build de produção de `client-app` e faça o deploy de `client-app/dist` no site `agendamento-josenilson` do Netlify.
+
 ## Estrutura do repositório
 
 ```text
