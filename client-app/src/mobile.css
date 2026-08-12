@@ -50,6 +50,26 @@ body {
   gap: 6px;
 }
 
+.step.step--fixed-action {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+.actions--fixed {
+  position: fixed;
+  z-index: 20;
+  right: 50%;
+  bottom: 0;
+  width: min(calc(100% - 24px), 720px);
+  margin: 0;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  transform: translateX(50%);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  background: var(--paper);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, .14);
+}
+
 button,
 input,
 textarea {
@@ -573,6 +593,12 @@ textarea {
   .actions {
     gap: 8px;
     margin-top: 19px;
+  }
+
+  .actions--fixed {
+    width: calc(100% - 32px);
+    margin: 0;
+    padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
   }
 
   .button {

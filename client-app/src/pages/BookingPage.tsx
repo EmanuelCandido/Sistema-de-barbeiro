@@ -210,11 +210,10 @@ export function BookingPage() {
       <header className="brand"><span className="brand__mark" aria-hidden="true"><Scissors size={22} /></span><div><small>AGENDE SEU HORÁRIO COM</small><h1>{settings?.businessName || "Barbearia"}</h1></div></header>
       <section className={`booking-card ${editing ? "booking-card--editing" : ""}`} aria-busy={submitting}>
         {editing ? <EditToolbar cancel={cancelEdit} /> : <Progress step={step} />}
-        <div className="step" key={step}>
+        <div className={`step ${step === 1 ? "step--fixed-action" : ""}`} key={step}>
           {step === 1 && <>
             <div className="heading">{editing && <p>EDITAR AGENDAMENTO</p>}<h2>{editing ? "Editar serviços" : "Escolha os serviços"}</h2><span>{editing ? `Adicione, remova ou troque até ${MAX_BOOKING_SERVICES} serviços deste atendimento.` : `Selecione até ${MAX_BOOKING_SERVICES} serviços para o mesmo horário.`}</span></div>
             <ServicePicker services={services} selectedIds={selectedServices.map((service) => service.id)} toggle={toggleService}/>
-            <Footer next={editing ? saveServiceEdit : () => setStep(2)} disabled={!selectedServices.length} nextLabel={editing ? "Continuar" : "Continuar"} />
           </>}
           {step === 2 && <>
             <div className="heading">{editing && <p>EDITAR AGENDAMENTO</p>}<h2>{editing ? "Editar data" : "Escolha o dia"}</h2><span>{editing ? "Escolha uma nova data disponível." : "Os dias com vaga estão disponíveis no calendário."}</span></div>
@@ -248,6 +247,7 @@ export function BookingPage() {
         </div>
         {error && <p className="alert" role="alert">{error}</p>}
       </section>
+      {step === 1 && <Footer fixed next={editing ? saveServiceEdit : () => setStep(2)} disabled={!selectedServices.length} />}
       <p className="secure-note"><ShieldCheck size={15} aria-hidden="true" /> Seus dados são protegidos e usados apenas para o agendamento.</p>
     </main>
   );
@@ -274,8 +274,8 @@ function ExistingBooking({ booking, businessName }: { booking: CustomerBooking; 
   </main>;
 }
 
-function Footer({ back, next, disabled, backLabel = "Voltar", nextLabel = "Continuar" }: { back?: () => void; next?: () => void; disabled?: boolean; backLabel?: string; nextLabel?: string }) {
-  return <div className="actions">{back && <button className="button button--ghost" onClick={back}><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button>}{next && <button className="button button--primary" onClick={next} disabled={disabled}>{nextLabel}</button>}</div>;
+function Footer({ back, next, disabled, fixed = false, backLabel = "Voltar", nextLabel = "Continuar" }: { back?: () => void; next?: () => void; disabled?: boolean; fixed?: boolean; backLabel?: string; nextLabel?: string }) {
+  return <div className={`actions ${fixed ? "actions--fixed" : ""}`}>{back && <button className="button button--ghost" onClick={back}><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button>}{next && <button className="button button--primary" onClick={next} disabled={disabled}>{nextLabel}</button>}</div>;
 }
 
 function EditToolbar({ cancel }: { cancel: () => void }) {
