@@ -265,7 +265,7 @@ export function ManageBookingPage() {
         <div className="heading"><p>EDITAR AGENDAMENTO</p><h2>Escolha os serviços</h2><span>Adicione, remova ou troque até {MAX_BOOKING_SERVICES} serviços deste atendimento.</span></div>
         <ServicePicker services={services} selectedIds={selectedServiceIds} toggle={toggleService}/>
         <div className="actions">
-          <button className="button button--ghost" onClick={() => setView("overview")}>Voltar</button>
+          <button className="button button--ghost button--rounded-back" onClick={() => setView("overview")}>Voltar</button>
           <button className="button button--primary" disabled={!selectedServices.length} onClick={() => setView("date")}>Continuar</button>
         </div>
       </div>}
@@ -273,7 +273,7 @@ export function ManageBookingPage() {
       {view === "date" && <div className="step">
         <div className="heading"><p>{editMode === "services" ? "EDITAR SERVIÇOS" : "REAGENDAR"}</p><h2>Escolha o dia</h2><span>Seu agendamento atual só muda depois da confirmação.</span></div>
         <Calendar dates={dates} selected={selectedDate} loading={dateLoading} isClosed={(date) => getPeriods(date, settings, null).length === 0} statusByDate={calendarStatus} onSelect={chooseDate}/>
-        <div className="actions"><button className="button button--ghost" onClick={() => setView(editMode === "services" ? "services" : "overview")}>Voltar</button></div>
+        <div className="actions"><button className="button button--ghost button--rounded-back" onClick={() => setView(editMode === "services" ? "services" : "overview")}>Voltar</button></div>
       </div>}
 
       {view === "time" && <div className="step">
@@ -282,7 +282,7 @@ export function ManageBookingPage() {
           ? <div className="time-grid">{times.map((time) => <button key={time} className={selectedTime === time ? "is-selected" : ""} onClick={() => setSelectedTime(time)} aria-pressed={selectedTime === time}>{time}</button>)}</div>
           : <InlineState title="Sem horários livres" text="Volte e escolha outro dia."/>}
         <div className="actions">
-          <button className="button button--ghost" onClick={() => { setView("date"); setSelectedTime(""); }}>Trocar dia</button>
+          <button className="button button--ghost button--rounded-back" onClick={() => { setView("date"); setSelectedTime(""); }}>Trocar dia</button>
           <button className="button button--primary" disabled={!selectedTime || busy} onClick={reschedule}>{busy ? "Salvando…" : editMode === "services" ? "Confirmar alterações" : "Confirmar novo horário"}</button>
         </div>
       </div>}
@@ -292,7 +292,7 @@ export function ManageBookingPage() {
         <div className="heading"><p>CANCELAR AGENDAMENTO</p><h2>Deseja mesmo cancelar?</h2><span>O horário será liberado para outra pessoa e esta ação não poderá ser desfeita por aqui.</span></div>
         <BookingDetails booking={booking}/>
         <div className="actions">
-          <button className="button button--ghost" disabled={busy} onClick={() => setView("overview")}>Manter agendamento</button>
+          <button className="button button--ghost button--rounded-back" disabled={busy} onClick={() => setView("overview")}>Manter agendamento</button>
           <button className="button button--danger" disabled={busy} onClick={cancelBooking}>{busy ? "Cancelando…" : "Sim, cancelar"}</button>
         </div>
       </div>}

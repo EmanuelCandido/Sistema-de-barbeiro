@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, CalendarClock, CircleAlert, Pencil, Scissors, ShieldCheck } from "lucide-react";
+import { CalendarClock, CircleAlert, Pencil, Scissors, ShieldCheck } from "lucide-react";
 import { addDays, buildAvailableTimes, dateKey, formatDateLong, getPeriods, minutesToTime, money, timeToMinutes } from "../lib/date";
 import { useAnonymousAuth } from "../hooks/useAnonymousAuth";
 import { getActiveServices, getAvailabilityForDate, getCalendarDayForDate, getCalendarDays, getPublicSettings } from "../services/publicData";
@@ -244,7 +244,7 @@ export function BookingPage() {
               <div className="review__row"><span><dt>Localização</dt><dd>Barbearia DaVinci<small>Av. Senador Arêa Leão, Jóquei<br/>Teresina - PI, 64049-110</small></dd></span><a className="review__edit review__map" href={businessMapsUrl} target="_blank" rel="noreferrer" aria-label="Abrir localização da Barbearia DaVinci no Google Maps" title="Abrir no Google Maps"><img src="/action-icons/map.svg" alt="" aria-hidden="true" /></a></div>
               {client.note && <div><dt>Observação</dt><dd>{client.note}</dd></div>}
             </dl>
-            <Footer back={() => setStep(4)} roundedBack next={confirm} nextLabel={submitting ? "Confirmando…" : "Confirmar agendamento"} disabled={submitting || !authState.ready} />
+            <Footer back={() => setStep(4)} next={confirm} nextLabel={submitting ? "Confirmando…" : "Confirmar agendamento"} disabled={submitting || !authState.ready} />
           </>}
         </div>
         {error && <p className="alert" role="alert">{error}</p>}
@@ -276,8 +276,8 @@ function ExistingBooking({ booking, businessName }: { booking: CustomerBooking; 
   </main>;
 }
 
-function Footer({ back, next, disabled, fixed = false, roundedBack = false, backLabel = "Voltar", nextLabel = "Continuar" }: { back?: () => void; next?: () => void; disabled?: boolean; fixed?: boolean; roundedBack?: boolean; backLabel?: string; nextLabel?: string }) {
-  return <div className={`actions ${fixed ? "actions--fixed" : ""}`}>{back && <button className={`button button--ghost ${roundedBack ? "button--rounded-back" : ""}`} onClick={back}>{!roundedBack && <ArrowLeft size={17} aria-hidden="true" />}{backLabel}</button>}{next && <button className="button button--primary" onClick={next} disabled={disabled}>{nextLabel}</button>}</div>;
+function Footer({ back, next, disabled, fixed = false, backLabel = "Voltar", nextLabel = "Continuar" }: { back?: () => void; next?: () => void; disabled?: boolean; fixed?: boolean; backLabel?: string; nextLabel?: string }) {
+  return <div className={`actions ${fixed ? "actions--fixed" : ""}`}>{back && <button className="button button--ghost button--rounded-back" onClick={back}>{backLabel}</button>}{next && <button className="button button--primary" onClick={next} disabled={disabled}>{nextLabel}</button>}</div>;
 }
 
 function EditToolbar({ cancel }: { cancel: () => void }) {
