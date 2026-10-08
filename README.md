@@ -1,31 +1,33 @@
 <div align="center">
 
-# Sistema de agendamento para barbearia
+# Agendamento Online para Barbearia
 
-Uma plataforma serverless para organizar a jornada completa de uma barbearia:<br>
-agendamento online para clientes, operação diária para o proprietário e proteção de dados no Firebase.
+**Menos mensagens no WhatsApp. Mais cadeiras ocupadas.**<br>
+Um site de agendamento para os seus clientes e um painel de gestão para você, tudo em um só sistema.
 
 ![React](https://img.shields.io/badge/React-19-20232a?logo=react&logoColor=61dafb)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178c6?logo=typescript&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-ffca28?logo=firebase&logoColor=1f1f1f)
-![Tests](https://img.shields.io/badge/Firestore%20Rules-tested-2e7d32)
+![Testes](https://img.shields.io/badge/Regras%20de%20seguran%C3%A7a-testadas-2e7d32)
 
 </div>
 
-## Sobre o projeto
+## O problema que resolvemos
 
-O sistema foi construído para eliminar conflitos de horário e centralizar a rotina de uma barbearia sem depender de um servidor tradicional. Dois aplicativos React independentes compartilham a mesma camada de autenticação e dados:
+Agendar por mensagem toma tempo, gera conflitos de horário e faz o barbeiro parar o corte para responder. Clientes desistem quando demoram a receber resposta, e o controle financeiro acaba espalhado em cadernos e conversas.
 
-- o **site do cliente**, mobile-first, permite escolher até dois serviços, consultar a disponibilidade real, reservar, reagendar e cancelar;
-- o **painel do proprietário** concentra agenda, serviços, horários, exceções e indicadores financeiros;
-- a camada **Firebase** aplica autorização, validação e consistência por meio de regras deny-by-default e transações atômicas.
+## A solução
 
-> [!IMPORTANT]
-> O painel administrativo não possui link, usuário ou senha públicos neste repositório. Sua interface é apresentada somente nas capturas abaixo, em modo claro e sem registros identificáveis de clientes.
+Um sistema completo, pronto para usar, com duas partes que trabalham juntas:
+
+| | Para quem | O que entrega |
+|---|---|---|
+| **Site de agendamento** | Seus clientes | Reservam sozinhos, a qualquer hora, direto pelo celular, sem baixar aplicativo e sem criar conta |
+| **Painel de gestão** | Você, proprietário | Agenda do dia, serviços, horários de atendimento e resultados financeiros em um só lugar |
 
 ## Experiência do cliente
 
-As imagens abaixo foram produzidas em ambiente local com informações fictícias.
+O agendamento leva poucos toques, em cinco passos: **serviço → dia → horário → contato → confirmação**. O preço e a duração são calculados automaticamente conforme a escolha.
 
 <table>
   <tr>
@@ -33,42 +35,86 @@ As imagens abaixo foram produzidas em ambiente local com informações fictícia
     <td align="center"><strong>Revisão do agendamento</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/images/cliente-servicos-claro.png" alt="Tela mobile em modo claro para escolha de serviços" width="360"></td>
-    <td><img src="docs/images/cliente-revisao-claro.png" alt="Tela mobile em modo claro de revisão do agendamento com dados fictícios" width="360"></td>
+    <td><img src="docs/images/cliente-servicos-claro.png" alt="Tela mobile para escolha de serviços" width="360"></td>
+    <td><img src="docs/images/cliente-revisao-claro.png" alt="Tela mobile de revisão do agendamento" width="360"></td>
   </tr>
 </table>
 
-O fluxo conduz o cliente por cinco etapas claras: serviço, dia, horário, contato e confirmação. Preço e duração são recalculados automaticamente sempre que a seleção muda.
+- Combina até **dois serviços** na mesma visita (ex.: cabelo + barba);
+- Mostra **somente horários realmente livres**, atualizados em tempo real;
+- Exibe **local e detalhes** do atendimento na confirmação;
+- Permite **consultar, trocar serviços, reagendar ou cancelar** sem precisar ligar;
+- Funciona bem em qualquer celular, com visual limpo e rápido.
+
+> As imagens usam dados fictícios.
 
 ## Painel do proprietário
 
-As capturas administrativas selecionadas não contêm agenda, nome, telefone ou observação de clientes.
+Acesso exclusivo e protegido por login. Nada de agenda ou dados de clientes é exposto publicamente.
 
 ### Catálogo de serviços
 
-![Painel administrativo em modo claro mostrando o catálogo de serviços](docs/images/painel-servicos-claro.png)
+![Catálogo de serviços no painel](docs/images/painel-servicos-claro.png)
 
-### Disponibilidade e exceções
+### Horários de atendimento e exceções
 
 <details>
-  <summary><strong>Ver tela completa de horários em modo claro</strong></summary>
+  <summary><strong>Ver tela de horários</strong></summary>
   <br>
-  <img src="docs/images/painel-horarios-claro.png" alt="Painel administrativo em modo claro para horários de atendimento e exceções">
+  <img src="docs/images/painel-horarios-claro.png" alt="Horários de atendimento e exceções">
 </details>
 
-## Principais recursos
+## Funcionalidades
 
-| Área | Recursos |
+| Área | O que você ganha |
 |---|---|
-| Agendamento público | Até dois serviços por reserva, calendário de disponibilidade, horários em tempo real, confirmação e resumo |
-| Autonomia do cliente | Consulta do próprio agendamento, troca de serviços, reagendamento e cancelamento |
-| Operação diária | Visão do dia, agenda semanal, detalhes do atendimento, confirmação, conclusão e cancelamento |
-| Catálogo | Cadastro, edição, ordenação, ativação e exclusão de serviços |
-| Disponibilidade | Grade semanal, múltiplos períodos por dia, bloqueios e horários especiais |
-| Financeiro | Receita concluída, ticket médio, cancelamentos e distribuição por forma de pagamento |
-| Responsividade | Experiência mobile-first para clientes e painel adaptado para diferentes telas |
+| **Agenda** | Visão do dia e da semana, detalhes de cada atendimento, confirmar, concluir, reagendar e cancelar |
+| **Serviços** | Cadastre, edite, reordene, ative/desative e remova serviços com preço e duração |
+| **Horários** | Grade semanal com vários períodos por dia (ex.: manhã e tarde), folgas, feriados e horários especiais |
+| **Financeiro** | Receita, ticket médio, cancelamentos e divisão por forma de pagamento |
+| **Cliente** | Agendamento 24h, sem conflitos, com reagendamento e cancelamento por conta própria |
+| **Modo claro e escuro** | Interface confortável em qualquer ambiente |
 
-## Arquitetura
+## Benefícios para o negócio
+
+- **Mais tempo no atendimento:** o sistema responde por você, a qualquer hora.
+- **Fim da dupla marcação:** dois clientes nunca conseguem reservar o mesmo horário.
+- **Menos faltas e improvisos:** o cliente remarca ou cancela com antecedência, liberando a vaga.
+- **Controle financeiro automático:** os números saem direto dos atendimentos concluídos.
+- **Imagem profissional:** seus clientes agendam em um site próprio, moderno e rápido.
+- **Custo de operação mínimo:** a infraestrutura em nuvem foi pensada para caber na camada gratuita do Firebase em barbearias de pequeno e médio porte.
+
+## Segurança e privacidade
+
+- Cada cliente enxerga **apenas o próprio agendamento**;
+- O painel exige login de proprietário com perfil ativo e política de senha forte;
+- **Preços e durações são validados no servidor**: ninguém consegue alterar valores pelo navegador;
+- Proteção contra uso indevido com Firebase App Check;
+- Cabeçalhos de segurança no site (CSP, HSTS, bloqueio de enquadramento, entre outros);
+- Dados de contato e financeiros protegidos contra alteração não autorizada.
+
+## O que está incluído na entrega
+
+- Site de agendamento do cliente, publicado e funcionando;
+- Painel administrativo com acesso do proprietário;
+- Configuração de serviços, preços, horários e local da barbearia;
+- Regras de segurança testadas automaticamente;
+- Documentação para operação e manutenção.
+
+## Limitações conhecidas
+
+- Se o cliente limpar os dados do navegador, não consegue mais consultar a reserva naquele aparelho (a barbearia continua vendo o agendamento no painel);
+- Não há busca pública de reservas por telefone;
+- Na camada gratuita do Firebase, o serviço pode ficar indisponível caso a franquia diária seja excedida. É possível migrar para o plano pago sem alterar o sistema.
+
+---
+
+## Documentação técnica
+
+<details>
+<summary><strong>Arquitetura, stack e execução local</strong></summary>
+
+### Arquitetura
 
 ```mermaid
 flowchart LR
@@ -79,41 +125,23 @@ flowchart LR
     RULES["Firestore Rules<br>deny-by-default"] --> FS
     CHECK["Firebase App Check"] --> CLIENT
     CHECK --> ADMIN
-    FS --> HOST["Firebase Hosting"]
 ```
 
-O projeto não depende de Cloud Functions, Cloud Run ou um backend próprio. Criação, cancelamento e reagendamento utilizam transações do SDK Web combinadas com regras do Firestore que validam o estado final da operação.
+Sem backend próprio: criação, cancelamento e reagendamento usam transações do SDK Web, e as regras do Firestore validam o estado final. Reserva e intervalos ocupados são gravados atomicamente; em disputa pelo mesmo horário, só uma transação é concluída. Os resumos financeiros são derivados dos atendimentos concluídos.
 
-## Decisões de engenharia
+### Stack
 
-- **Reserva e disponibilidade são uma única operação:** o agendamento e os intervalos ocupados são gravados juntos. Em uma disputa pelo mesmo horário, apenas uma transação é concluída.
-- **O navegador não define preço nem duração:** as regras conferem os serviços ativos e seus valores antes de aceitar a reserva.
-- **Autorização por identidade e papel:** clientes anônimos acessam somente os próprios documentos; o painel exige autenticação e perfil `owner` ativo.
-- **Financeiro derivado dos atendimentos:** os resumos podem ser reconstruídos a partir dos registros concluídos, reduzindo o risco de divergências após cancelamentos ou reagendamentos.
-- **Custo operacional reduzido:** a arquitetura foi pensada para funcionar no plano Spark, com consultas limitadas, cache de dados públicos e ausência de documentos para horários vazios.
-- **Aplicações separadas:** cliente e painel possuem builds e configurações independentes, diminuindo o acoplamento e permitindo deploys isolados.
-
-## Stack
-
-- **Frontend:** React 19, TypeScript, Vite e React Router;
+- **Frontend:** React 19, TypeScript, Vite e React Router (wouter);
 - **Interface:** CSS responsivo, Lucide React e React Icons;
 - **Plataforma:** Firebase Authentication, Cloud Firestore, App Check e Hosting;
-- **Qualidade:** TypeScript estrito, Node Test Runner, Firebase Emulator Suite e Rules Unit Testing;
-- **Segurança HTTP:** CSP, HSTS, `nosniff`, Referrer Policy, bloqueio de enquadramento e Permissions Policy.
+- **Qualidade:** TypeScript estrito, Node Test Runner, Firebase Emulator Suite e Rules Unit Testing.
 
-## Produção e publicação
-
-> [!IMPORTANT]
-> O site do cliente em produção é [https://agendamento-josenilson.netlify.app](https://agendamento-josenilson.netlify.app). Alterações em `client-app` devem ser compiladas e publicadas **diretamente nesse site pelo Netlify**; publicar apenas no Firebase Hosting ou enviar o código ao GitHub não atualiza o ambiente de produção do cliente.
-
-Antes de concluir qualquer alteração no site do cliente, execute o build de produção de `client-app` e faça o deploy de `client-app/dist` no site `agendamento-josenilson` do Netlify.
-
-## Estrutura do repositório
+### Estrutura
 
 ```text
 .
-├── client-app/             # Jornada pública de agendamento
-├── admin-app/              # Operação privada da barbearia
+├── client-app/             # Site público de agendamento
+├── admin-app/              # Painel privado da barbearia
 ├── firebase/
 │   ├── firestore.rules     # Autorização e validação dos dados
 │   ├── firestore.indexes.json
@@ -124,15 +152,9 @@ Antes de concluir qualquer alteração no site do cliente, execute o build de pr
 └── package.json            # Workspaces e comandos do monorepo
 ```
 
-## Como executar localmente
+### Executar localmente
 
-### Pré-requisitos
-
-- Node.js 20 ou superior;
-- Java 21 ou superior para o Firebase Emulator Suite;
-- Firebase CLI, instalada pelas dependências do projeto.
-
-### Instalação
+Requisitos: Node.js 20+, Java 21+ (Firebase Emulator Suite).
 
 ```powershell
 npm install
@@ -141,12 +163,10 @@ Copy-Item admin-app/.env.example admin-app/.env.local
 Copy-Item .firebaserc.example .firebaserc
 ```
 
-Preencha os arquivos `.env.local` com a configuração de um projeto Firebase próprio. Os arquivos locais, tokens de debug e o `.firebaserc` real são ignorados pelo Git.
-
-### Desenvolvimento
+Preencha os `.env.local` com a configuração de um projeto Firebase próprio. Depois:
 
 ```powershell
-# Cliente público com Auth e Firestore locais
+# Cliente com Auth e Firestore locais
 npm run dev:client:local
 
 # Aplicativos individualmente
@@ -154,44 +174,25 @@ npm run dev --prefix client-app
 npm run dev --prefix admin-app
 ```
 
-O painel não oferece cadastro público. Para testes locais, crie sua própria conta no Auth Emulator e um perfil administrativo compatível com as regras; nenhuma credencial é fornecida ou versionada.
+O painel não possui cadastro público; para testes locais, crie uma conta no Auth Emulator com perfil `owner` ativo.
 
-## Segurança e privacidade
-
-As regras do Firestore:
-
-- vinculam cada reserva pública ao UID anônimo que a criou;
-- impedem leitura ou alteração de reservas de outros clientes;
-- validam serviço, preço, duração, grade semanal, exceções, antecedência e janela máxima;
-- exigem intervalos sequenciais e evitam dupla ocupação;
-- protegem dados de contato, pagamento e financeiro contra alterações não autorizadas;
-- bloqueiam mudanças depois do início, conclusão ou cancelamento do atendimento;
-- exigem `role == "owner"` e `active == true` para operações administrativas;
-- negam por padrão qualquer caminho não declarado.
-
-O `localStorage` guarda somente o identificador opaco do último agendamento. As credenciais de autenticação são mantidas pelo SDK do Firebase.
-
-## Testes e validação
+### Testes
 
 ```powershell
-# Testes das regras no Firestore Emulator
-npm run test:rules
-
-# TypeScript estrito + builds de produção
-npm run build
-
-# Suíte completa
-npm test
+npm run test:rules   # regras no Firestore Emulator
+npm run build        # TypeScript estrito + builds de produção
+npm test             # suíte completa
 ```
 
-A suíte cobre isolamento entre usuários, criação com um ou dois serviços, concorrência por horário, adulteração de preço, intervalos inválidos, dias fechados, exceções, cancelamento, troca de serviços, reagendamento no mesmo dia e entre dias, além dos papéis administrativos.
+A suíte cobre isolamento entre usuários, concorrência por horário, adulteração de preço, intervalos inválidos, dias fechados, exceções, cancelamento, troca de serviços, reagendamento e papéis administrativos.
 
-## Limitações conhecidas
+### Publicação
 
-- se o armazenamento do navegador for apagado, o UID anônimo pode ser perdido e a reserva deixa de ser recuperável publicamente naquele dispositivo;
-- não existe busca pública por telefone ou por um ID informado manualmente;
-- no plano Spark, o serviço pode ficar temporariamente indisponível caso a franquia gratuita seja excedida.
+> [!IMPORTANT]
+> O site do cliente em produção é [agendamento-josenilson.netlify.app](https://agendamento-josenilson.netlify.app). Alterações em `client-app` devem ser compiladas (`npm run build --prefix client-app`) e publicadas com o deploy de `client-app/dist` diretamente no site `agendamento-josenilson` do Netlify. Publicar só no Firebase Hosting ou enviar ao GitHub não atualiza a produção.
 
-## Autor
+</details>
+
+## Contato
 
 Desenvolvido por [Emanuel Candido](https://github.com/EmanuelCandido).
